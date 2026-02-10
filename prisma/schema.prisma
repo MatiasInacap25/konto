@@ -1,0 +1,147 @@
+// Prisma Schema para Supabase
+// La tabla Profile se linkea con auth.users de Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Profile se crea automáticamente cuando un usuario se registra
+// El id es el mismo que auth.users.id de Supabase
+model Profile {
+  id        String   @id @db.Uuid // Mismo ID que auth.users
+  email     String   @unique
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones con otras tablas de tu app irían acá
+  // transactions Transaction[]
+  // categories   Category[]
+
+  @@map("profiles")
+}
+
+// --------------------------------------
+// ENUMS: La clave para la lógica híbrida
+// --------------------------------------
+
+// Define si el movimiento es ingreso o gasto
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// EL CORE DEL MVP: Define si es personal o de negocio
+// Esto te permite filtrar todo el dashboard con un simple "WHERE"
+enum TransactionScope {
+  PERSONAL
+  BUSINESS
+  MIXED // Opcional: Para cuando pagas la cena de empresa con la tarjeta personal (reembolsos)
+}
+
+// Frecuencia para tu "Subscription Tracker"
+enum Frequency {
+  WEEKLY        // Semanal
+  BIWEEKLY      // Quincenal (Cada 15 días / 2 semanas)
+  MONTHLY       // Mensual
+  QUARTERLY     // Trimestral (Cada 3 meses)
+  SEMI_ANNUALLY // Semestral (Cada 6 meses)
+  YEARLY        // Anual
+}
+
+// --------------------------------------
+// MODELOS (Tablas)
+// --------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  subscriptions Subscription[]
+}
+
+// Representa "Dónde está el dinero" (Banco, Efectivo, PayPal)
+// Necesario para evitar la conciliación manual externa.
+model Account {
+  id            String        @id @default(cuid())
+  name          String        // Ej: "Banco Santander", "Caja Chica"
+  balance       Decimal       @default(0.00) // Saldo actual calculado
+  isBusiness    Boolean       @default(false) // Ayuda a sugerir el scope por defecto
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions  Transaction[]
+}
+
+// Categorías unificadas pero flexibles
+model Category {
+  id            String           @id @default(cuid())
+  name          String           // Ej: "Software", "Supermercado", "Servidor"
+  scope         TransactionScope @default(PERSONAL) // Sugerencia por defecto
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions  Transaction[]
+  subscriptions Subscription[]
+
+  @@unique([name, userId]) // Evita duplicar categorías para un mismo usuario
+}
+
+// La tabla principal: El registro diario
+model Transaction {
+  id            String           @id @default(cuid())
+  amount        Decimal          @db.Decimal(10, 2)
+  date          DateTime         @default(now())
+  description   String?
+
+  // Clasificación
+  type          TransactionType  // INCOME o EXPENSE
+  scope         TransactionScope // PERSONAL o BUSINESS (El filtro mágico)
+
+  // Relaciones
+  accountId     String
+  account       Account          @relation(fields: [accountId], references: [id])
+  categoryId    String?
+  category      Category?        @relation(fields: [categoryId], references: [id])
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Opcional: Para adjuntar recibos (MVP Feature)
+  receiptUrl    String?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+// Módulo de "Subscription Tracker" y Gastos Recurrentes
+// Separado de transacciones para poder proyectar a futuro sin "ensuciar" el historial.
+model Subscription {
+  id            String           @id @default(cuid())
+  name          String           // Ej: "Netflix", "Vercel Pro"
+  amount        Decimal          @db.Decimal(10, 2)
+  frequency     Frequency
+  nextPayment   DateTime
+  isActive      Boolean          @default(true)
+
+  scope         TransactionScope // Para saber si es gasto de empresa o personal
+
+  categoryId    String?
+  category      Category?        @relation(fields: [categoryId], references: [id])
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
