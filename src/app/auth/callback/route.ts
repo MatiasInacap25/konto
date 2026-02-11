@@ -12,17 +12,17 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // Verificar si existe el perfil, si no, crearlo (para OAuth)
-      const existingProfile = await prisma.profile.findUnique({
+      // Verificar si existe el usuario, si no, crearlo (para OAuth)
+      const existingUser = await prisma.user.findUnique({
         where: { id: data.user.id },
       });
 
-      if (!existingProfile) {
-        await prisma.profile.create({
+      if (!existingUser) {
+        await prisma.user.create({
           data: {
             id: data.user.id,
             email: data.user.email!,
-            fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+            name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
             avatarUrl: data.user.user_metadata?.avatar_url || null,
           },
         });

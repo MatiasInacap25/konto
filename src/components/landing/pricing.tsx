@@ -1,34 +1,45 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 
 const plans = [
   {
-    name: "Básico",
+    name: "Starter",
     price: "Gratis",
     period: "",
-    description: "Para empezar a ordenar tus finanzas",
+    description: "Experimenta la magia de tener todo en un solo lugar",
     features: [
-      "Registro de ingresos",
-      "Registro de gastos",
-      "Historial de transacciones",
+      "1 Workspace Personal + 1 Negocio",
+      "2 cuentas por workspace (Banco + Efectivo)",
+      "Categorías predeterminadas",
+      "Hasta 5 suscripciones activas",
+      "1 regla de impuestos por workspace",
     ],
+    limitations: ["Sin bot de WhatsApp"],
     cta: "Empezar gratis",
     href: "/register",
     highlighted: false,
   },
   {
     name: "Pro",
-    price: "$9",
+    price: "$12",
     period: "/mes",
-    description: "Para freelancers que quieren control total",
+    description: "Para el freelancer que necesita personalización total",
     features: [
-      "Categorías personalizadas",
-      "Dashboard con gráficos",
-      "Filtros avanzados",
-      "Exportar a CSV",
-      "Etiquetas ilimitadas",
+      "1 Personal + hasta 3 Negocios",
+      "Cuentas ilimitadas",
+      "Categorías personalizables",
+      "Suscripciones ilimitadas",
+      "Reglas de impuestos ilimitadas",
+      "Proyección de flujo (Runway)",
+      "Adjuntar recibos",
     ],
+    limitations: ["Sin bot de WhatsApp"],
     cta: "Elegir Pro",
     href: "/register?plan=pro",
     highlighted: true,
@@ -37,14 +48,16 @@ const plans = [
     name: "Business",
     price: "$29",
     period: "/mes",
-    description: "Para emprendedores con múltiples negocios",
+    description: "Delega la administración en nuestra IA",
     features: [
-      "Multi-negocio (hasta 10)",
-      "Reportes por negocio",
-      "Exportar PDF y Excel",
-      "Comparativas entre negocios",
+      "Hasta 10 negocios",
+      "Bot de WhatsApp con IA",
+      "Registro por audio o texto",
+      "Escáner de recibos (OCR)",
+      "Consultas por chat",
       "Soporte prioritario",
     ],
+    limitations: [],
     cta: "Elegir Business",
     href: "/register?plan=business",
     highlighted: false,
@@ -60,7 +73,8 @@ export function Pricing() {
             Planes simples, sin sorpresas
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Elige el plan que se adapte a tu situación. Siempre puedes cambiar después.
+            Elige el plan que se adapte a tu situación. Siempre puedes cambiar
+            después.
           </p>
         </div>
 
@@ -105,6 +119,14 @@ export function Pricing() {
                       <span className="text-sm">{feature}</span>
                     </li>
                   ))}
+                  {plan.limitations.map((limitation) => (
+                    <li key={limitation} className="flex items-start gap-2">
+                      <XIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {limitation}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
               <CardFooter>
@@ -122,7 +144,7 @@ export function Pricing() {
 
         {/* Disclaimer */}
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          Cada plan incluye todas las características de los planes anteriores.
+          Cada plan incluye todas las características de los planes inferiores.
         </p>
       </div>
     </section>
@@ -141,6 +163,23 @@ function CheckIcon({ className }: { className?: string }) {
       className={className}
     >
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </svg>
   );
 }

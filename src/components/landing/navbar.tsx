@@ -8,19 +8,9 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-5 w-5 text-primary-foreground"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
+            <span className="text-sm font-bold text-primary-foreground">K</span>
           </div>
-          <span className="text-xl font-semibold tracking-tight">Finanzas</span>
+          <span className="text-xl font-semibold tracking-tight">Konto</span>
         </Link>
 
         {/* Navigation Links */}
@@ -36,6 +26,18 @@ export function Navbar() {
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Precios
+          </a>
+          <a
+            href="#faq"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            FAQ
+          </a>
+          <a
+            href="#contact"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Contacto
           </a>
         </nav>
 

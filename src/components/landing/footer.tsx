@@ -8,23 +8,13 @@ export function Footer() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-5 w-5 text-primary-foreground"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+              <span className="text-sm font-bold text-primary-foreground">K</span>
             </div>
-            <span className="text-lg font-semibold tracking-tight">Finanzas</span>
+            <span className="text-lg font-semibold tracking-tight">Konto</span>
           </Link>
 
           {/* Links */}
-          <nav className="flex items-center gap-6">
+          <nav className="flex flex-wrap items-center justify-center gap-6">
             <a
               href="#features"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -37,6 +27,18 @@ export function Footer() {
             >
               Precios
             </a>
+            <a
+              href="#faq"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              FAQ
+            </a>
+            <a
+              href="#contact"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Contacto
+            </a>
             <Link
               href="/login"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -47,7 +49,7 @@ export function Footer() {
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Finanzas. Todos los derechos reservados.
+            © {new Date().getFullYear()} Konto. Todos los derechos reservados.
           </p>
         </div>
       </div>

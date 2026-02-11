@@ -11,137 +11,166 @@ datasource db {
 
 // Profile se crea automáticamente cuando un usuario se registra
 // El id es el mismo que auth.users.id de Supabase
-model Profile {
-  id        String   @id @db.Uuid // Mismo ID que auth.users
-  email     String   @unique
-  fullName  String?  @map("full_name")
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+// --------------------------------------
+// ENUMS
+// --------------------------------------
 
-  // Relaciones con otras tablas de tu app irían acá
-  // transactions Transaction[]
-  // categories   Category[]
-
-  @@map("profiles")
+enum Plan {
+  STARTER
+  PRO
+  BUSINESS
 }
 
-// --------------------------------------
-// ENUMS: La clave para la lógica híbrida
-// --------------------------------------
-
-// Define si el movimiento es ingreso o gasto
 enum TransactionType {
   INCOME
   EXPENSE
 }
 
-// EL CORE DEL MVP: Define si es personal o de negocio
-// Esto te permite filtrar todo el dashboard con un simple "WHERE"
+enum WorkspaceType {
+  PERSONAL
+  BUSINESS
+}
+
+// Mantenemos esto para casos bordes (ej: gasto personal dentro de una cuenta de negocio)
 enum TransactionScope {
   PERSONAL
   BUSINESS
-  MIXED // Opcional: Para cuando pagas la cena de empresa con la tarjeta personal (reembolsos)
+  MIXED
 }
 
-// Frecuencia para tu "Subscription Tracker"
 enum Frequency {
-  WEEKLY        // Semanal
-  BIWEEKLY      // Quincenal (Cada 15 días / 2 semanas)
-  MONTHLY       // Mensual
-  QUARTERLY     // Trimestral (Cada 3 meses)
-  SEMI_ANNUALLY // Semestral (Cada 6 meses)
-  YEARLY        // Anual
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUALLY
+  YEARLY
 }
 
 // --------------------------------------
-// MODELOS (Tablas)
+// MODELOS
 // --------------------------------------
 
+// FUSIONADO: User y Profile son uno solo ahora.
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @db.Uuid // ID directo de Supabase Auth
   email         String    @unique
   name          String?
+  avatarUrl     String?   @map("avatar_url")
+  plan          Plan      @default(STARTER)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relaciones
-  accounts      Account[]
-  categories    Category[]
-  transactions  Transaction[]
-  subscriptions Subscription[]
+  // El usuario NO tiene transacciones directas, tiene Workspaces.
+  workspaces    Workspace[]
 }
 
-// Representa "Dónde está el dinero" (Banco, Efectivo, PayPal)
-// Necesario para evitar la conciliación manual externa.
-model Account {
+model Workspace {
   id            String        @id @default(cuid())
-  name          String        // Ej: "Banco Santander", "Caja Chica"
-  balance       Decimal       @default(0.00) // Saldo actual calculado
-  isBusiness    Boolean       @default(false) // Ayuda a sugerir el scope por defecto
-  userId        String
+  name          String
+  type          WorkspaceType @default(BUSINESS)
+  currency      String        @default("CLP")
+
+  userId        String        @db.Uuid
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Todo cuelga del Workspace
+  transactions  Transaction[]
+  categories    Category[]
+  accounts      Account[]
+  subscriptions Subscription[]
+  taxRules      TaxRule[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Account {
+  id            String      @id @default(cuid())
+  name          String
+  balance       Decimal     @default(0.00) @db.Decimal(10, 2)
+  isBusiness    Boolean     @default(false)
+
+  // Relación estricta con Workspace (no con User directo)
+  workspaceId   String
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   transactions  Transaction[]
 }
 
-// Categorías unificadas pero flexibles
 model Category {
-  id            String           @id @default(cuid())
-  name          String           // Ej: "Software", "Supermercado", "Servidor"
-  scope         TransactionScope @default(PERSONAL) // Sugerencia por defecto
-  userId        String
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String          @id @default(cuid())
+  name          String
+  icon          String?
+  type          TransactionType // Importante: Saber si es cat de ingreso o gasto
+
+  // Opcional: Si es NULL, es una categoría GLOBAL (del sistema)
+  // Si tiene ID, es una categoría CUSTOM de ese workspace
+  workspaceId   String?
+  workspace     Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   transactions  Transaction[]
   subscriptions Subscription[]
 
-  @@unique([name, userId]) // Evita duplicar categorías para un mismo usuario
+  // Unicidad: En un mismo workspace no puede haber dos categorías iguales.
+  // Pero permite duplicados si workspaceId es diferente.
+  @@unique([name, workspaceId, type])
+  @@index([workspaceId])
 }
 
-// La tabla principal: El registro diario
 model Transaction {
   id            String           @id @default(cuid())
   amount        Decimal          @db.Decimal(10, 2)
   date          DateTime         @default(now())
   description   String?
 
-  // Clasificación
-  type          TransactionType  // INCOME o EXPENSE
-  scope         TransactionScope // PERSONAL o BUSINESS (El filtro mágico)
+  type          TransactionType
+  scope         TransactionScope // Para marcar gastos mixtos
 
   // Relaciones
+  workspaceId   String
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   accountId     String
   account       Account          @relation(fields: [accountId], references: [id])
+
   categoryId    String?
   category      Category?        @relation(fields: [categoryId], references: [id])
-  userId        String
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Opcional: Para adjuntar recibos (MVP Feature)
   receiptUrl    String?
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 }
 
-// Módulo de "Subscription Tracker" y Gastos Recurrentes
-// Separado de transacciones para poder proyectar a futuro sin "ensuciar" el historial.
 model Subscription {
   id            String           @id @default(cuid())
-  name          String           // Ej: "Netflix", "Vercel Pro"
+  name          String
   amount        Decimal          @db.Decimal(10, 2)
   frequency     Frequency
   nextPayment   DateTime
   isActive      Boolean          @default(true)
+  type          TransactionType
+  scope         TransactionScope
 
-  scope         TransactionScope // Para saber si es gasto de empresa o personal
+  // Relaciones
+  workspaceId   String
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   categoryId    String?
   category      Category?        @relation(fields: [categoryId], references: [id])
-  userId        String
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+}
+
+model TaxRule {
+  id  String  @id @default(cuid())
+  name  String
+  percentage  Decimal @db.Decimal(5,2)
+  isActive  Boolean  @default(true)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

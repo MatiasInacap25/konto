@@ -26,20 +26,20 @@ export async function signUp(formData: FormData) {
     return { error: error.message };
   }
 
-  // Crear el perfil en nuestra tabla
+  // Crear el usuario en nuestra tabla
   if (data.user) {
     try {
-      await prisma.profile.create({
+      await prisma.user.create({
         data: {
           id: data.user.id,
           email: data.user.email!,
-          fullName: fullName || null,
+          name: fullName || null,
         },
       });
     } catch (e) {
-      console.error("Error creating profile:", e);
-      // El usuario ya se creó en Supabase Auth, pero falló el profile
-      // Podrías manejarlo con un trigger en Supabase o reintentar
+      console.error("Error creating user:", e);
+      // El usuario ya se creó en Supabase Auth, pero falló la creación
+      // Se puede manejar con un trigger en Supabase o reintentar
     }
   }
 
