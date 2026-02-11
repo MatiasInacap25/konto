@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Plan } from "@/types/plans";
-import { PLAN_LIMITS, hasFeature, isAtLimit, hasAccessToPlan } from "@/lib/plans";
+import {
+  PLAN_LIMITS,
+  hasFeature,
+  isAtLimit,
+  hasAccessToPlan,
+} from "@/lib/plans";
 
 export type PlanState = {
   plan: Plan;
@@ -13,12 +18,12 @@ export type PlanState = {
 
 /**
  * Hook para obtener el plan del usuario actual.
- * 
+ *
  * Uso:
  * ```tsx
  * const { plan, isLoading } = usePlan();
  * ```
- * 
+ *
  * Nota: Por defecto retorna STARTER mientras carga para evitar
  * mostrar features premium brevemente.
  */
@@ -34,8 +39,11 @@ export function usePlan(): PlanState {
 
     async function fetchUserPlan() {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
         if (authError) throw authError;
         if (!user) throw new Error("No authenticated user");
 
@@ -67,7 +75,9 @@ export function usePlan(): PlanState {
     fetchUserPlan();
 
     // Suscribirse a cambios de auth (por si el usuario hace upgrade en otra pestaña)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
       fetchUserPlan();
     });
 
@@ -81,11 +91,11 @@ export function usePlan(): PlanState {
 
 /**
  * Hook con helpers adicionales para verificar acceso a features.
- * 
+ *
  * Uso:
  * ```tsx
  * const { canAccess, hasFeatureAccess, isAtPlanLimit } = usePlanAccess();
- * 
+ *
  * if (canAccess("PRO")) { ... }
  * if (hasFeatureAccess("runway")) { ... }
  * ```
@@ -98,18 +108,22 @@ export function usePlanAccess() {
     isLoading,
     error,
     limits: PLAN_LIMITS[plan],
-    
+
     /** Verifica si el usuario puede acceder a features de un plan específico */
     canAccess: (requiredPlan: Plan) => hasAccessToPlan(plan, requiredPlan),
-    
+
     /** Verifica si una feature específica está habilitada */
-    hasFeatureAccess: (feature: "customCategories" | "runway" | "receipts" | "whatsappBot") => 
-      hasFeature(plan, feature),
-    
+    hasFeatureAccess: (
+      feature: "customCategories" | "runway" | "receipts" | "whatsappBot",
+    ) => hasFeature(plan, feature),
+
     /** Verifica si se alcanzó un límite numérico */
     isAtPlanLimit: (
-      limitKey: "accountsPerWorkspace" | "taxRulesPerWorkspace" | "subscriptions",
-      currentCount: number
+      limitKey:
+        | "accountsPerWorkspace"
+        | "taxRulesPerWorkspace"
+        | "subscriptions",
+      currentCount: number,
     ) => isAtLimit(plan, limitKey, currentCount),
   };
 }

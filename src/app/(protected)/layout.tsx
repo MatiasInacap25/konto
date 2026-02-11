@@ -10,30 +10,66 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
   }
 
   // Obtener datos del usuario desde Prisma
-  const dbUser = await prisma.user.findUnique({
+  let dbUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
+      id: true,
       name: true,
       avatarUrl: true,
       plan: true,
+      workspaces: {
+        where: { type: "PERSONAL" },
+        take: 1,
+      },
     },
   });
 
-  // Si no existe el usuario en la DB, lo creamos (primera vez después del auth)
+  // Si no existe el usuario en la DB, lo creamos con su workspace Personal
   if (!dbUser) {
-    await prisma.user.create({
+    dbUser = await prisma.user.create({
       data: {
         id: user.id,
         email: user.email!,
         name: user.user_metadata?.full_name || user.user_metadata?.name || null,
         avatarUrl: user.user_metadata?.avatar_url || null,
+        workspaces: {
+          create: {
+            name: "Personal",
+            type: "PERSONAL",
+            currency: "CLP",
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        plan: true,
+        workspaces: {
+          where: { type: "PERSONAL" },
+          take: 1,
+        },
+      },
+    });
+  }
+
+  // Si el usuario existe pero no tiene workspace Personal (caso edge), lo creamos
+  if (dbUser && dbUser.workspaces.length === 0) {
+    await prisma.workspace.create({
+      data: {
+        userId: dbUser.id,
+        name: "Personal",
+        type: "PERSONAL",
+        currency: "CLP",
       },
     });
   }
@@ -55,9 +91,7 @@ export default async function ProtectedLayout({
         <Header user={userData} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 
-export function Hero() {
+export async function Hero() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
+
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
       {/* Background subtle gradient */}
@@ -20,16 +25,24 @@ export function Hero() {
               hojas de cálculo. Sin contabilidad compleja.
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link href="/register">Empieza gratis</Link>
-              </Button>
+              {isLoggedIn ? (
+                <Button size="lg" asChild>
+                  <Link href="/dashboard">Ir al Dashboard</Link>
+                </Button>
+              ) : (
+                <Button size="lg" asChild>
+                  <Link href="/register">Empieza gratis</Link>
+                </Button>
+              )}
               <Button size="lg" variant="outline" asChild>
                 <a href="#features">Ver características</a>
               </Button>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Sin tarjeta de crédito • Configuración en 2 minutos
-            </p>
+            {!isLoggedIn && (
+              <p className="mt-6 text-sm text-muted-foreground">
+                Sin tarjeta de crédito • Configuración en 2 minutos
+              </p>
+            )}
           </div>
 
           {/* Ilustración abstracta - Dos círculos que se unen (el "switch") */}

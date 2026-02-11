@@ -200,6 +200,57 @@ import { cn } from "@/lib/utils";
 <div className={cn("base-class", isActive && "active-class")} />
 ```
 
+### Loading States (Skeletons)
+
+**MANDATORY**: All pages in `(protected)/` MUST use Skeleton loading states.
+
+Pattern for pages with async data:
+
+```typescript
+// page.tsx - Wrap content in Suspense with key for param changes
+import { Suspense } from "react";
+import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { PageContent } from "@/components/dashboard/page-content";
+
+export default async function Page({ searchParams }) {
+  const params = await searchParams;
+  const workspaceId = params.workspace || "default";
+
+  return (
+    <Suspense key={workspaceId} fallback={<PageSkeleton />}>
+      <PageContent workspaceId={params.workspace} />
+    </Suspense>
+  );
+}
+```
+
+- Use `<Skeleton />` from `@/components/ui/skeleton`
+- Create a `{page}-skeleton.tsx` component for each page
+- Create a `loading.tsx` file in each page directory
+- Use `key={workspaceId}` on Suspense to re-trigger skeleton on workspace change
+
+Example skeleton component:
+```typescript
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
+export function PageSkeleton() {
+  return (
+    <div className="space-y-8">
+      <Skeleton className="h-9 w-48" />
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-4 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
 ---
 
 ## Language & Copy

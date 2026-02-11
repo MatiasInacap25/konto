@@ -5,6 +5,27 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Crea el usuario y su workspace Personal por defecto
+ */
+async function createUserWithPersonalWorkspace(userId: string, email: string, name: string | null) {
+  // Crear usuario con su workspace Personal en una transacción
+  await prisma.user.create({
+    data: {
+      id: userId,
+      email: email,
+      name: name,
+      workspaces: {
+        create: {
+          name: "Personal",
+          type: "PERSONAL",
+          currency: "CLP",
+        },
+      },
+    },
+  });
+}
+
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
 
@@ -26,20 +47,16 @@ export async function signUp(formData: FormData) {
     return { error: error.message };
   }
 
-  // Crear el usuario en nuestra tabla
+  // Crear el usuario y workspace Personal
   if (data.user) {
     try {
-      await prisma.user.create({
-        data: {
-          id: data.user.id,
-          email: data.user.email!,
-          name: fullName || null,
-        },
-      });
+      await createUserWithPersonalWorkspace(
+        data.user.id,
+        data.user.email!,
+        fullName || null
+      );
     } catch (e) {
-      console.error("Error creating user:", e);
-      // El usuario ya se creó en Supabase Auth, pero falló la creación
-      // Se puede manejar con un trigger en Supabase o reintentar
+      console.error("Error creating user with workspace:", e);
     }
   }
 
@@ -74,13 +91,17 @@ export async function signOut() {
   redirect("/login");
 }
 
-export async function signInWithOAuth(provider: "google" | "github") {
+export async function signInWithOAuth(provider: "google") {
   const supabase = await createClient();
+
+  // Obtener la URL base de la app (funciona en dev y prod)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback`,
+      // Redirigir a NUESTRA app, no a Supabase
+      redirectTo: `${siteUrl}/auth/callback`,
     },
   });
 

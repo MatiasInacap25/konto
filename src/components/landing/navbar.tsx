@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 
-export function Navbar() {
+export async function Navbar() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -39,16 +44,30 @@ export function Navbar() {
           >
             Contacto
           </a>
+          <a
+            href="#suggestions"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Sugerencias
+          </a>
         </nav>
 
-        {/* Auth Buttons */}
+        {/* Auth Buttons - Cambian según estado de sesión */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Iniciar sesión</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/register">Empezar gratis</Link>
-          </Button>
+          {isLoggedIn ? (
+            <Button size="sm" asChild>
+              <Link href="/dashboard">Ir al Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Iniciar sesión</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/register">Empezar gratis</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

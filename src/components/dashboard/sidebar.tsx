@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { usePlanAccess } from "@/hooks/use-plan";
+import { WorkspaceSelector } from "./workspace-selector";
 import type { Plan } from "@/types/plans";
 import {
   LayoutDashboard,
@@ -29,6 +30,8 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   requiredPlan?: Plan;
   badge?: string;
+  /** Si true, no incluye el workspace en la URL */
+  noWorkspace?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -61,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Workspaces",
     href: "/workspaces",
     icon: Building2,
+    noWorkspace: true,
   },
   {
     label: "Reglas de Impuestos",
@@ -93,13 +97,26 @@ const BOTTOM_NAV_ITEMS: NavItem[] = [
     label: "Configuración",
     href: "/settings",
     icon: Settings,
+    noWorkspace: true,
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { canAccess, isLoading, plan } = usePlanAccess();
+  const searchParams = useSearchParams();
+  const { canAccess } = usePlanAccess();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Obtener el workspace actual de la URL para mantenerlo en los links
+  const currentWorkspaceId = searchParams.get("workspace");
+
+  // Función para generar href con workspace param
+  function getHref(item: NavItem): string {
+    if (item.noWorkspace || !currentWorkspaceId) {
+      return item.href;
+    }
+    return `${item.href}?workspace=${currentWorkspaceId}`;
+  }
 
   return (
     <aside
@@ -109,56 +126,42 @@ export function Sidebar() {
       )}
     >
       {/* Header con Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b">
+      <div className={cn(
+        "flex items-center h-16 border-b",
+        isCollapsed ? "justify-center px-2" : "justify-between px-4"
+      )}>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-foreground font-bold text-lg">K</span>
+          </div>
+          {!isCollapsed && <span className="font-semibold text-lg">Konto</span>}
+        </Link>
         {!isCollapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
-            </div>
-            <span className="font-semibold text-lg">Konto</span>
-          </Link>
-        )}
-        {isCollapsed && (
-          <Link href="/dashboard" className="mx-auto">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
-            </div>
-          </Link>
-        )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn(
-            "p-1.5 rounded-md hover:bg-muted transition-colors",
-            isCollapsed && "absolute left-4 top-14"
-          )}
-          aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            aria-label="Colapsar sidebar"
+          >
             <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
+          </button>
+        )}
       </div>
 
-      {/* Plan Badge */}
-      {!isCollapsed && !isLoading && (
-        <div className="px-4 py-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Plan actual:</span>
-            <span
-              className={cn(
-                "text-xs font-medium px-2 py-0.5 rounded-full",
-                plan === "STARTER" && "bg-muted text-muted-foreground",
-                plan === "PRO" && "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-                plan === "BUSINESS" && "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-              )}
-            >
-              {plan}
-            </span>
-          </div>
+      {/* Botón expandir - solo visible cuando está colapsado */}
+      {isCollapsed && (
+        <div className="flex justify-center py-2 border-b">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            aria-label="Expandir sidebar"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       )}
+
+      {/* Workspace Selector */}
+      <WorkspaceSelector isCollapsed={isCollapsed} />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
@@ -170,7 +173,7 @@ export function Sidebar() {
             return (
               <li key={item.href}>
                 <Link
-                  href={hasAccess ? item.href : "#"}
+                  href={hasAccess ? getHref(item) : "#"}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                     isActive
@@ -213,7 +216,7 @@ export function Sidebar() {
             return (
               <li key={item.href}>
                 <Link
-                  href={item.href}
+                  href={getHref(item)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                     isActive

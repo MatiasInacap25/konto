@@ -9,4 +9,10 @@ export type TransactionType = "INCOME" | "EXPENSE";
 
 export type TransactionScope = "PERSONAL" | "BUSINESS" | "MIXED";
 
-export type Frequency = "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" | "SEMI_ANNUALLY" | "YEARLY";
+export type Frequency =
+  | "WEEKLY"
+  | "BIWEEKLY"
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "SEMI_ANNUALLY"
+  | "YEARLY";

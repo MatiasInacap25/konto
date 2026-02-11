@@ -4,14 +4,14 @@ export const PLAN_LIMITS = {
   STARTER: {
     // Workspaces
     workspaces: { personal: 1, business: 1 },
-    
+
     // Límites por workspace
     accountsPerWorkspace: 2,
     taxRulesPerWorkspace: 1,
-    
+
     // Límites globales
     subscriptions: 5,
-    
+
     // Features booleanas
     customCategories: false,
     runway: false,
@@ -21,14 +21,14 @@ export const PLAN_LIMITS = {
   PRO: {
     // Workspaces
     workspaces: { personal: 1, business: 3 },
-    
+
     // Límites por workspace
     accountsPerWorkspace: Infinity,
     taxRulesPerWorkspace: Infinity,
-    
+
     // Límites globales
     subscriptions: Infinity,
-    
+
     // Features booleanas
     customCategories: true,
     runway: true,
@@ -38,14 +38,14 @@ export const PLAN_LIMITS = {
   BUSINESS: {
     // Workspaces
     workspaces: { personal: 1, business: 10 },
-    
+
     // Límites por workspace
     accountsPerWorkspace: Infinity,
     taxRulesPerWorkspace: Infinity,
-    
+
     // Límites globales
     subscriptions: Infinity,
-    
+
     // Features booleanas
     customCategories: true,
     runway: true,
@@ -85,7 +85,7 @@ export function getPlanLimits(plan: Plan): PlanLimits {
  */
 export function hasFeature(
   plan: Plan,
-  feature: "customCategories" | "runway" | "receipts" | "whatsappBot"
+  feature: "customCategories" | "runway" | "receipts" | "whatsappBot",
 ): boolean {
   return PLAN_LIMITS[plan][feature];
 }
@@ -94,9 +94,9 @@ export function hasFeature(
  * Verifica si se ha alcanzado un límite numérico
  */
 export function isAtLimit(
-  plan: Plan, 
-  limitKey: "accountsPerWorkspace" | "taxRulesPerWorkspace" | "subscriptions", 
-  currentCount: number
+  plan: Plan,
+  limitKey: "accountsPerWorkspace" | "taxRulesPerWorkspace" | "subscriptions",
+  currentCount: number,
 ): boolean {
   const limit = PLAN_LIMITS[plan][limitKey];
   return limit !== Infinity && currentCount >= limit;

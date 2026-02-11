@@ -10,7 +10,7 @@ type PlanGateProps = {
   requiredPlan: Plan;
   /** Contenido a mostrar si el usuario tiene acceso */
   children: React.ReactNode;
-  /** 
+  /**
    * Comportamiento cuando el usuario NO tiene acceso:
    * - "hide": No renderiza nada
    * - "blur": Muestra contenido borroso con overlay de upgrade
@@ -32,19 +32,19 @@ const PLAN_NAMES: Record<Plan, string> = {
 
 /**
  * Componente que bloquea contenido según el plan del usuario.
- * 
+ *
  * @example
  * ```tsx
  * // Ocultar completamente si no tiene acceso
  * <PlanGate requiredPlan="PRO" behavior="hide">
  *   <RunwayChart />
  * </PlanGate>
- * 
+ *
  * // Mostrar versión borrosa con CTA de upgrade
  * <PlanGate requiredPlan="BUSINESS" behavior="blur">
  *   <WhatsAppBotConfig />
  * </PlanGate>
- * 
+ *
  * // Mostrar mensaje de bloqueo
  * <PlanGate requiredPlan="PRO" behavior="lock">
  *   <ReceiptsUploader />
@@ -162,7 +162,9 @@ export function PlanGateNavItem({
 
   // No tiene acceso: mostrar con candado
   return (
-    <div className={cn("relative flex items-center gap-2 opacity-60", className)}>
+    <div
+      className={cn("relative flex items-center gap-2 opacity-60", className)}
+    >
       {children}
       <Lock className="w-3 h-3 text-muted-foreground" />
     </div>
@@ -172,11 +174,11 @@ export function PlanGateNavItem({
 /**
  * Hook helper para verificar acceso a una feature específica.
  * Útil cuando necesitás lógica condicional sin wrappear en un componente.
- * 
+ *
  * @example
  * ```tsx
  * const canAccessRunway = useCanAccessPlan("PRO");
- * 
+ *
  * if (canAccessRunway) {
  *   // mostrar botón de runway
  * }
@@ -184,9 +186,9 @@ export function PlanGateNavItem({
  */
 export function useCanAccessPlan(requiredPlan: Plan): boolean {
   const { canAccess, isLoading } = usePlanAccess();
-  
+
   // Mientras carga, retornamos false para ser conservadores
   if (isLoading) return false;
-  
+
   return canAccess(requiredPlan);
 }

@@ -1,6 +1,9 @@
-import { Navbar, Hero, Features, Pricing, FAQ, Contact, Footer } from "@/components/landing";
+import { Navbar, Hero, Features, Pricing, FAQ, Contact, Suggestions, Footer } from "@/components/landing";
 
-export default function Home() {
+// Force dynamic rendering - esta página depende del estado de auth
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -10,6 +13,7 @@ export default function Home() {
         <Pricing />
         <FAQ />
         <Contact />
+        <Suggestions />
       </main>
       <Footer />
     </div>

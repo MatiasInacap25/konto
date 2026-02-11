@@ -4,4 +4,5 @@ export { Features } from "./features";
 export { Pricing } from "./pricing";
 export { FAQ } from "./faq";
 export { Contact } from "./contact";
+export { Suggestions } from "./suggestions";
 export { Footer } from "./footer";
