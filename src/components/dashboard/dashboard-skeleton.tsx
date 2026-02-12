@@ -56,7 +56,7 @@ export function DashboardSkeleton() {
           </CardContent>
         </Card>
 
-        {/* Upcoming subscriptions skeleton */}
+        {/* Upcoming recurrings skeleton */}
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-36" />

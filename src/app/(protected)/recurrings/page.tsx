@@ -7,13 +7,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function SubscriptionsPage() {
+export default function RecurringsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Suscripciones</h1>
+        <h1 className="text-3xl font-bold">Recurrentes</h1>
         <p className="text-muted-foreground mt-1">
-          Controlá tus pagos recurrentes y suscripciones.
+          Controlá tus pagos e ingresos recurrentes.
         </p>
       </div>
 
@@ -29,8 +29,9 @@ export default function SubscriptionsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Acá vas a poder registrar suscripciones (Netflix, Spotify, hosting, etc.), 
-            ver cuánto gastás por mes y recibir recordatorios de vencimiento.
+            Acá vas a poder registrar pagos e ingresos recurrentes (Netflix, Spotify, 
+            retainers de clientes, hosting, etc.), ver cuánto gastás por mes y recibir 
+            recordatorios de vencimiento.
           </p>
         </CardContent>
       </Card>

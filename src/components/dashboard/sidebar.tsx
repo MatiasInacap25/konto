@@ -56,8 +56,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: Tags,
   },
   {
-    label: "Suscripciones",
-    href: "/subscriptions",
+    label: "Recurrentes",
+    href: "/recurrings",
     icon: CreditCard,
   },
   {

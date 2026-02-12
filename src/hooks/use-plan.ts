@@ -122,7 +122,7 @@ export function usePlanAccess() {
       limitKey:
         | "accountsPerWorkspace"
         | "taxRulesPerWorkspace"
-        | "subscriptions",
+        | "recurrings",
       currentCount: number,
     ) => isAtLimit(plan, limitKey, currentCount),
   };

@@ -64,6 +64,7 @@ model User {
 
   // El usuario NO tiene transacciones directas, tiene Workspaces.
   workspaces    Workspace[]
+  categories    Category[]
 }
 
 model Workspace {
@@ -77,9 +78,8 @@ model Workspace {
 
   // Todo cuelga del Workspace
   transactions  Transaction[]
-  categories    Category[]
   accounts      Account[]
-  subscriptions Subscription[]
+  Recurrings Recurring[]
   taxRules      TaxRule[]
 
   createdAt     DateTime      @default(now())
@@ -97,6 +97,7 @@ model Account {
   workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   transactions  Transaction[]
+  recurrings    Recurring[]
 }
 
 model Category {
@@ -107,16 +108,16 @@ model Category {
 
   // Opcional: Si es NULL, es una categoría GLOBAL (del sistema)
   // Si tiene ID, es una categoría CUSTOM de ese workspace
-  workspaceId   String?
-  workspace     Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId        String?         @db.Uuid
+  user          User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   transactions  Transaction[]
-  subscriptions Subscription[]
+  Recurrings Recurring[]
 
   // Unicidad: En un mismo workspace no puede haber dos categorías iguales.
   // Pero permite duplicados si workspaceId es diferente.
-  @@unique([name, workspaceId, type])
-  @@index([workspaceId])
+  @@unique([name, userId, type])
+  @@index([userId])
 }
 
 model Transaction {
@@ -144,7 +145,7 @@ model Transaction {
   updatedAt     DateTime         @updatedAt
 }
 
-model Subscription {
+model Recurring {
   id            String           @id @default(cuid())
   name          String
   amount        Decimal          @db.Decimal(10, 2)
@@ -157,6 +158,10 @@ model Subscription {
   // Relaciones
   workspaceId   String
   workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Cuenta desde la que se paga/cobra (opcional, usa primera del workspace si no está definida)
+  accountId     String?
+  account       Account?         @relation(fields: [accountId], references: [id])
 
   categoryId    String?
   category      Category?        @relation(fields: [categoryId], references: [id])

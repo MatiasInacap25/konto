@@ -11,14 +11,14 @@ type RegisterPaymentResult = {
 };
 
 /**
- * Registra el pago de una suscripción vencida.
+ * Registra el pago de un recurrente vencido.
  * 
- * 1. Crea una transacción con el monto de la suscripción
+ * 1. Crea una transacción con el monto del recurrente
  * 2. Actualiza la fecha del próximo pago según la frecuencia
- * 3. Actualiza el balance de la cuenta (si existe una cuenta por defecto)
+ * 3. Actualiza el balance de la cuenta asociada
  */
-export async function registerSubscriptionPayment(
-  subscriptionId: string,
+export async function registerRecurringPayment(
+  recurringId: string,
   workspaceId: string
 ): Promise<RegisterPaymentResult> {
   try {
@@ -29,10 +29,10 @@ export async function registerSubscriptionPayment(
       return { success: false, error: "No autenticado" };
     }
 
-    // Obtener la suscripción
-    const subscription = await prisma.subscription.findFirst({
+    // Obtener el recurrente
+    const recurring = await prisma.recurring.findFirst({
       where: {
-        id: subscriptionId,
+        id: recurringId,
         workspaceId: workspaceId,
         workspace: {
           userId: user.id,
@@ -42,50 +42,52 @@ export async function registerSubscriptionPayment(
         workspace: {
           include: {
             accounts: {
-              take: 1, // Usar la primera cuenta disponible
+              take: 1, // Fallback a la primera cuenta si no hay accountId
             },
           },
         },
         category: true,
+        account: true, // Incluir la cuenta asociada
       },
     });
 
-    if (!subscription) {
-      return { success: false, error: "Suscripción no encontrada" };
+    if (!recurring) {
+      return { success: false, error: "Recurrente no encontrado" };
     }
 
-    if (!subscription.workspace.accounts[0]) {
+    // Usar la cuenta asociada o la primera cuenta disponible como fallback
+    const account = recurring.account || recurring.workspace.accounts[0];
+
+    if (!account) {
       return { success: false, error: "No hay cuentas disponibles para registrar el pago" };
     }
 
-    const account = subscription.workspace.accounts[0];
-
     // Calcular la próxima fecha de pago según la frecuencia
     const nextPayment = calculateNextPayment(
-      subscription.nextPayment,
-      subscription.frequency
+      recurring.nextPayment,
+      recurring.frequency
     );
 
-    // Crear la transacción y actualizar la suscripción en una transacción de DB
+    // Crear la transacción y actualizar el recurrente en una transacción de DB
     const result = await prisma.$transaction(async (tx) => {
       // Crear la transacción
       const transaction = await tx.transaction.create({
         data: {
-          amount: subscription.amount,
-          date: subscription.nextPayment, // Fecha original del pago
-          description: `Pago suscripción: ${subscription.name}`,
-          type: subscription.type,
-          scope: subscription.scope,
+          amount: recurring.amount,
+          date: recurring.nextPayment, // Fecha original del pago
+          description: `Pago recurrente: ${recurring.name}`,
+          type: recurring.type,
+          scope: recurring.scope,
           accountId: account.id,
-          categoryId: subscription.categoryId,
+          categoryId: recurring.categoryId,
           workspaceId: workspaceId,
         },
       });
 
       // Actualizar el balance de la cuenta
-      const balanceChange = subscription.type === "EXPENSE" 
-        ? -Number(subscription.amount)
-        : Number(subscription.amount);
+      const balanceChange = recurring.type === "EXPENSE" 
+        ? -Number(recurring.amount)
+        : Number(recurring.amount);
 
       await tx.account.update({
         where: { id: account.id },
@@ -96,9 +98,9 @@ export async function registerSubscriptionPayment(
         },
       });
 
-      // Actualizar la fecha del próximo pago de la suscripción
-      await tx.subscription.update({
-        where: { id: subscriptionId },
+      // Actualizar la fecha del próximo pago del recurrente
+      await tx.recurring.update({
+        where: { id: recurringId },
         data: {
           nextPayment: nextPayment,
         },
@@ -112,7 +114,7 @@ export async function registerSubscriptionPayment(
 
     return { success: true, transactionId: result.id };
   } catch (error) {
-    console.error("Error registering subscription payment:", error);
+    console.error("Error registering recurring payment:", error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Error desconocido" 

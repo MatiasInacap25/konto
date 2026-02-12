@@ -4,9 +4,9 @@ import { useState } from "react";
 import { AlertTriangle, Calendar, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { registerSubscriptionPayment } from "@/actions/subscriptions";
+import { registerRecurringPayment } from "@/actions/recurrings";
 
-type Subscription = {
+type Recurring = {
   id: string;
   name: string;
   amount: number;
@@ -15,17 +15,17 @@ type Subscription = {
   frequency: string;
 };
 
-type UpcomingSubscriptionsProps = {
-  subscriptions: Subscription[];
+type UpcomingRecurringsProps = {
+  recurrings: Recurring[];
   currency: string;
   workspaceId: string;
 };
 
-export function UpcomingSubscriptions({ 
-  subscriptions, 
+export function UpcomingRecurrings({ 
+  recurrings, 
   currency, 
   workspaceId 
-}: UpcomingSubscriptionsProps) {
+}: UpcomingRecurringsProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
 
@@ -56,12 +56,12 @@ export function UpcomingSubscriptions({
     return diffDays;
   };
 
-  const handleRegisterPayment = async (subscriptionId: string) => {
-    setLoadingId(subscriptionId);
+  const handleRegisterPayment = async (recurringId: string) => {
+    setLoadingId(recurringId);
     try {
-      const result = await registerSubscriptionPayment(subscriptionId, workspaceId);
+      const result = await registerRecurringPayment(recurringId, workspaceId);
       if (result.success) {
-        setRegisteredIds(prev => new Set([...prev, subscriptionId]));
+        setRegisteredIds(prev => new Set([...prev, recurringId]));
       } else {
         console.error("Error registering payment:", result.error);
       }
@@ -72,16 +72,16 @@ export function UpcomingSubscriptions({
     }
   };
 
-  if (subscriptions.length === 0) {
+  if (recurrings.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-4">
-        No hay suscripciones activas
+        No hay recurrentes activos
       </p>
     );
   }
 
-  // Ordenar: vencidas primero, luego por fecha
-  const sortedSubscriptions = [...subscriptions].sort((a, b) => {
+  // Ordenar: vencidos primero, luego por fecha
+  const sortedRecurrings = [...recurrings].sort((a, b) => {
     const aOverdue = isOverdue(a.nextPayment);
     const bOverdue = isOverdue(b.nextPayment);
     if (aOverdue && !bOverdue) return -1;
@@ -91,15 +91,15 @@ export function UpcomingSubscriptions({
 
   return (
     <div className="space-y-3">
-      {sortedSubscriptions.map((sub) => {
-        const overdue = isOverdue(sub.nextPayment);
-        const daysUntil = getDaysUntil(sub.nextPayment);
-        const isRegistered = registeredIds.has(sub.id);
-        const isLoading = loadingId === sub.id;
+      {sortedRecurrings.map((rec) => {
+        const overdue = isOverdue(rec.nextPayment);
+        const daysUntil = getDaysUntil(rec.nextPayment);
+        const isRegistered = registeredIds.has(rec.id);
+        const isLoading = loadingId === rec.id;
 
         return (
           <div
-            key={sub.id}
+            key={rec.id}
             className={cn(
               "flex items-center justify-between py-2 border-b last:border-0",
               overdue && !isRegistered && "bg-red-50 -mx-2 px-2 rounded-md"
@@ -125,7 +125,7 @@ export function UpcomingSubscriptions({
                 )}
               </div>
               <div>
-                <p className="text-sm font-medium">{sub.name}</p>
+                <p className="text-sm font-medium">{rec.name}</p>
                 <p className={cn(
                   "text-xs",
                   isRegistered
@@ -137,7 +137,7 @@ export function UpcomingSubscriptions({
                   {isRegistered 
                     ? "Registrado ✓"
                     : overdue 
-                    ? `Vencido el ${formatDate(sub.nextPayment)}`
+                    ? `Vencido el ${formatDate(rec.nextPayment)}`
                     : daysUntil === 0
                     ? "Vence hoy"
                     : daysUntil === 1
@@ -151,18 +151,18 @@ export function UpcomingSubscriptions({
               <span
                 className={cn(
                   "text-sm font-semibold",
-                  sub.type === "INCOME" ? "text-green-600" : "text-muted-foreground"
+                  rec.type === "INCOME" ? "text-green-600" : "text-muted-foreground"
                 )}
               >
-                {sub.type === "INCOME" ? "+" : ""}
-                {formatCurrency(Number(sub.amount))}
+                {rec.type === "INCOME" ? "+" : ""}
+                {formatCurrency(Number(rec.amount))}
               </span>
               {overdue && !isRegistered && (
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs"
-                  onClick={() => handleRegisterPayment(sub.id)}
+                  onClick={() => handleRegisterPayment(rec.id)}
                   disabled={isLoading}
                 >
                   {isLoading ? (

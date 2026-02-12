@@ -10,7 +10,7 @@ export const PLAN_LIMITS = {
     taxRulesPerWorkspace: 1,
 
     // Límites globales
-    subscriptions: 5,
+    recurrings: 5,
 
     // Features booleanas
     customCategories: false,
@@ -27,7 +27,7 @@ export const PLAN_LIMITS = {
     taxRulesPerWorkspace: Infinity,
 
     // Límites globales
-    subscriptions: Infinity,
+    recurrings: Infinity,
 
     // Features booleanas
     customCategories: true,
@@ -44,7 +44,7 @@ export const PLAN_LIMITS = {
     taxRulesPerWorkspace: Infinity,
 
     // Límites globales
-    subscriptions: Infinity,
+    recurrings: Infinity,
 
     // Features booleanas
     customCategories: true,
@@ -95,7 +95,7 @@ export function hasFeature(
  */
 export function isAtLimit(
   plan: Plan,
-  limitKey: "accountsPerWorkspace" | "taxRulesPerWorkspace" | "subscriptions",
+  limitKey: "accountsPerWorkspace" | "taxRulesPerWorkspace" | "recurrings",
   currentCount: number,
 ): boolean {
   const limit = PLAN_LIMITS[plan][limitKey];

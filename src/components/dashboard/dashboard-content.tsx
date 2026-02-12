@@ -8,15 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Wallet, 
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Wallet,
   CreditCard,
   AlertCircle,
 } from "lucide-react";
 import { RecentTransactions } from "./recent-transactions";
-import { UpcomingSubscriptions } from "./upcoming-subscriptions";
+import { UpcomingRecurrings } from "./upcoming-recurrings";
 
 type DashboardContentProps = {
   workspaceId?: string;
@@ -24,7 +24,9 @@ type DashboardContentProps = {
 
 export async function DashboardContent({ workspaceId }: DashboardContentProps) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
@@ -34,7 +36,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
   let workspace = null;
   let totalAccounts = 0;
   let totalBalance = 0;
-  let activeSubscriptions = 0;
+  let activeRecurrings = 0;
   let totalTransactions = 0;
   let monthlyIncome = 0;
   let monthlyExpenses = 0;
@@ -47,7 +49,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
     category: { name: string; icon: string | null } | null;
     account: { name: string };
   }[] = [];
-  let upcomingSubscriptions: {
+  let upcomingRecurrings: {
     id: string;
     name: string;
     amount: number;
@@ -66,7 +68,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
         },
         include: {
           accounts: true,
-          subscriptions: {
+          Recurrings: {
             where: { isActive: true },
           },
           _count: {
@@ -85,7 +87,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
         },
         include: {
           accounts: true,
-          subscriptions: {
+          Recurrings: {
             where: { isActive: true },
           },
           _count: {
@@ -98,9 +100,9 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
     // Calcular métricas del workspace activo
     if (workspace) {
       totalAccounts = workspace.accounts.length;
-      activeSubscriptions = workspace.subscriptions.length;
+      activeRecurrings = workspace.Recurrings.length;
       totalTransactions = workspace._count.transactions;
-      
+
       for (const acc of workspace.accounts) {
         totalBalance += Number(acc.balance);
       }
@@ -108,7 +110,14 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
       // Calcular ingresos y gastos del mes actual
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
 
       const monthlyTransactions = await prisma.transaction.groupBy({
         by: ["type"],
@@ -146,8 +155,8 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
           },
         },
       });
-      
-      recentTransactions = rawTransactions.map(tx => ({
+
+      recentTransactions = rawTransactions.map((tx) => ({
         id: tx.id,
         amount: Number(tx.amount),
         date: tx.date,
@@ -157,23 +166,23 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
         account: tx.account,
       }));
 
-      // Obtener próximas suscripciones (ordenadas por fecha, incluye vencidas)
-      const rawSubscriptions = await prisma.subscription.findMany({
-        where: { 
+      // Obtener próximos recurrentes (ordenados por fecha, incluye vencidos)
+      const rawRecurrings = await prisma.recurring.findMany({
+        where: {
           workspaceId: workspace.id,
           isActive: true,
         },
         orderBy: { nextPayment: "asc" },
         take: 5,
       });
-      
-      upcomingSubscriptions = rawSubscriptions.map(sub => ({
-        id: sub.id,
-        name: sub.name,
-        amount: Number(sub.amount),
-        nextPayment: sub.nextPayment,
-        type: sub.type,
-        frequency: sub.frequency,
+
+      upcomingRecurrings = rawRecurrings.map((rec) => ({
+        id: rec.id,
+        name: rec.name,
+        amount: Number(rec.amount),
+        nextPayment: rec.nextPayment,
+        type: rec.type,
+        frequency: rec.frequency,
       }));
     }
   } catch (error) {
@@ -198,10 +207,9 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          {workspace?.type === "BUSINESS" 
+          {workspace?.type === "BUSINESS"
             ? `Resumen de ${workspace.name}`
-            : "Resumen de tus finanzas personales"
-          }
+            : "Resumen de tus finanzas personales"}
         </p>
       </div>
 
@@ -224,46 +232,42 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Ingresos del Mes
+            </CardTitle>
             <ArrowUpRight className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               {formatCurrency(monthlyIncome)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Este mes
-            </p>
+            <p className="text-xs text-muted-foreground">Este mes</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Gastos del Mes
+            </CardTitle>
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
               {formatCurrency(monthlyExpenses)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Este mes
-            </p>
+            <p className="text-xs text-muted-foreground">Este mes</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Suscripciones</CardTitle>
+            <CardTitle className="text-sm font-medium">Recurrentes</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {activeSubscriptions}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              activas
-            </p>
+            <div className="text-2xl font-bold">{activeRecurrings}</div>
+            <p className="text-xs text-muted-foreground">activos</p>
           </CardContent>
         </Card>
       </div>
@@ -279,8 +283,8 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
               ¡Empezá a organizar tus finanzas!
             </h3>
             <p className="text-muted-foreground text-center max-w-md mb-6">
-              Todavía no tenés cuentas ni transacciones registradas. 
-              Creá tu primera cuenta para comenzar a trackear tus ingresos y gastos.
+              Todavía no tenés cuentas ni transacciones registradas. Creá tu
+              primera cuenta para comenzar a trackear tus ingresos y gastos.
             </p>
             <div className="flex gap-3">
               <a
@@ -309,24 +313,22 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentTransactions 
+              <RecentTransactions
                 transactions={recentTransactions}
                 currency={currency}
               />
             </CardContent>
           </Card>
 
-          {/* Upcoming subscriptions */}
+          {/* Upcoming recurrings */}
           <Card>
             <CardHeader>
               <CardTitle>Próximos Pagos</CardTitle>
-              <CardDescription>
-                Suscripciones que vencen pronto
-              </CardDescription>
+              <CardDescription>Recurrentes que vencen pronto</CardDescription>
             </CardHeader>
             <CardContent>
-              <UpcomingSubscriptions 
-                subscriptions={upcomingSubscriptions}
+              <UpcomingRecurrings
+                recurrings={upcomingRecurrings}
                 currency={currency}
                 workspaceId={workspace?.id || ""}
               />
