@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared";
 import { createClient } from "@/lib/supabase/server";
 
 export async function Navbar() {
@@ -11,11 +12,10 @@ export async function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">K</span>
+        <Link href="/" className="flex items-center">
+          <div className="flex h-7 px-2 items-center justify-center rounded-md bg-primary">
+            <span className="text-sm font-bold text-primary-foreground">Konto</span>
           </div>
-          <span className="text-xl font-semibold tracking-tight">Konto</span>
         </Link>
 
         {/* Navigation Links */}
@@ -52,8 +52,9 @@ export async function Navbar() {
           </a>
         </nav>
 
-        {/* Auth Buttons - Cambian según estado de sesión */}
+        {/* Theme Toggle & Auth Buttons */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {isLoggedIn ? (
             <Button size="sm" asChild>
               <Link href="/dashboard">Ir al Dashboard</Link>

@@ -130,11 +130,12 @@ export function Sidebar() {
         "flex items-center h-16 border-b",
         isCollapsed ? "justify-center px-2" : "justify-between px-4"
       )}>
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-bold text-lg">K</span>
+        <Link href="/dashboard" className="flex items-center">
+          <div className="h-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0 px-2">
+            <span className="text-primary-foreground font-bold text-sm">
+              {isCollapsed ? "K" : "Konto"}
+            </span>
           </div>
-          {!isCollapsed && <span className="font-semibold text-lg">Konto</span>}
         </Link>
         {!isCollapsed && (
           <button

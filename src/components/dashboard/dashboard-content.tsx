@@ -1,13 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -15,6 +6,15 @@ import {
   CreditCard,
   AlertCircle,
 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { getUser } from "@/lib/auth";
+import { getWorkspaceWithDashboardData } from "@/lib/queries";
 import { RecentTransactions } from "./recent-transactions";
 import { UpcomingRecurrings } from "./upcoming-recurrings";
 
@@ -23,180 +23,35 @@ type DashboardContentProps = {
 };
 
 export async function DashboardContent({ workspaceId }: DashboardContentProps) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  // Obtener el workspace activo (por ID o el Personal por defecto)
-  let workspace = null;
-  let totalAccounts = 0;
-  let totalBalance = 0;
-  let activeRecurrings = 0;
-  let totalTransactions = 0;
-  let monthlyIncome = 0;
-  let monthlyExpenses = 0;
-  let recentTransactions: {
-    id: string;
-    amount: number;
-    date: Date;
-    description: string | null;
-    type: "INCOME" | "EXPENSE";
-    category: { name: string; icon: string | null } | null;
-    account: { name: string };
-  }[] = [];
-  let upcomingRecurrings: {
-    id: string;
-    name: string;
-    amount: number;
-    nextPayment: Date;
-    type: "INCOME" | "EXPENSE";
-    frequency: string;
-  }[] = [];
+  // Single optimized query with parallel fetching
+  const data = await getWorkspaceWithDashboardData(user.id, workspaceId);
 
-  try {
-    if (workspaceId) {
-      // Buscar workspace específico (verificando que pertenece al usuario)
-      workspace = await prisma.workspace.findFirst({
-        where: {
-          id: workspaceId,
-          userId: user.id,
-        },
-        include: {
-          accounts: true,
-          Recurrings: {
-            where: { isActive: true },
-          },
-          _count: {
-            select: { transactions: true },
-          },
-        },
-      });
-    }
-
-    // Si no hay workspace específico o no se encontró, usar el Personal
-    if (!workspace) {
-      workspace = await prisma.workspace.findFirst({
-        where: {
-          userId: user.id,
-          type: "PERSONAL",
-        },
-        include: {
-          accounts: true,
-          Recurrings: {
-            where: { isActive: true },
-          },
-          _count: {
-            select: { transactions: true },
-          },
-        },
-      });
-    }
-
-    // Calcular métricas del workspace activo
-    if (workspace) {
-      totalAccounts = workspace.accounts.length;
-      activeRecurrings = workspace.Recurrings.length;
-      totalTransactions = workspace._count.transactions;
-
-      for (const acc of workspace.accounts) {
-        totalBalance += Number(acc.balance);
-      }
-
-      // Calcular ingresos y gastos del mes actual
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-      );
-
-      const monthlyTransactions = await prisma.transaction.groupBy({
-        by: ["type"],
-        where: {
-          workspaceId: workspace.id,
-          date: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-        },
-        _sum: {
-          amount: true,
-        },
-      });
-
-      for (const group of monthlyTransactions) {
-        if (group.type === "INCOME") {
-          monthlyIncome = Number(group._sum.amount) || 0;
-        } else if (group.type === "EXPENSE") {
-          monthlyExpenses = Number(group._sum.amount) || 0;
-        }
-      }
-
-      // Obtener últimas 5 transacciones
-      const rawTransactions = await prisma.transaction.findMany({
-        where: { workspaceId: workspace.id },
-        orderBy: { date: "desc" },
-        take: 5,
-        include: {
-          category: {
-            select: { name: true, icon: true },
-          },
-          account: {
-            select: { name: true },
-          },
-        },
-      });
-
-      recentTransactions = rawTransactions.map((tx) => ({
-        id: tx.id,
-        amount: Number(tx.amount),
-        date: tx.date,
-        description: tx.description,
-        type: tx.type,
-        category: tx.category,
-        account: tx.account,
-      }));
-
-      // Obtener próximos recurrentes (ordenados por fecha, incluye vencidos)
-      const rawRecurrings = await prisma.recurring.findMany({
-        where: {
-          workspaceId: workspace.id,
-          isActive: true,
-        },
-        orderBy: { nextPayment: "asc" },
-        take: 5,
-      });
-
-      upcomingRecurrings = rawRecurrings.map((rec) => ({
-        id: rec.id,
-        name: rec.name,
-        amount: Number(rec.amount),
-        nextPayment: rec.nextPayment,
-        type: rec.type,
-        frequency: rec.frequency,
-      }));
-    }
-  } catch (error) {
-    console.error("Could not fetch workspace data:", error);
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <h3 className="font-medium mb-1">Workspace no encontrado</h3>
+        <p className="text-sm text-muted-foreground">
+          No se pudo cargar el workspace seleccionado.
+        </p>
+      </div>
+    );
   }
 
-  const hasData = totalAccounts > 0 || totalTransactions > 0;
-  const currency = workspace?.currency || "CLP";
+  const { workspace, stats, recentTransactions, upcomingRecurrings } = data;
+  const currency = workspace.currency;
+  const hasData = stats.totalAccounts > 0 || stats.totalTransactions > 0;
 
-  // Formatear moneda
+  // Currency formatter - hoisted outside render for performance
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-CL", {
       style: "currency",
-      currency: currency,
+      currency,
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -207,7 +62,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          {workspace?.type === "BUSINESS"
+          {workspace.type === "BUSINESS"
             ? `Resumen de ${workspace.name}`
             : "Resumen de tus finanzas personales"}
         </p>
@@ -222,10 +77,11 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalBalance)}
+              {formatCurrency(stats.totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
-              En {totalAccounts} {totalAccounts === 1 ? "cuenta" : "cuentas"}
+              En {stats.totalAccounts}{" "}
+              {stats.totalAccounts === 1 ? "cuenta" : "cuentas"}
             </p>
           </CardContent>
         </Card>
@@ -239,7 +95,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(monthlyIncome)}
+              {formatCurrency(stats.monthlyIncome)}
             </div>
             <p className="text-xs text-muted-foreground">Este mes</p>
           </CardContent>
@@ -247,14 +103,12 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Gastos del Mes
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(monthlyExpenses)}
+              {formatCurrency(stats.monthlyExpenses)}
             </div>
             <p className="text-xs text-muted-foreground">Este mes</p>
           </CardContent>
@@ -266,7 +120,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeRecurrings}</div>
+            <div className="text-2xl font-bold">{stats.activeRecurrings}</div>
             <p className="text-xs text-muted-foreground">activos</p>
           </CardContent>
         </Card>
@@ -330,7 +184,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
               <UpcomingRecurrings
                 recurrings={upcomingRecurrings}
                 currency={currency}
-                workspaceId={workspace?.id || ""}
+                workspaceId={workspace.id}
               />
             </CardContent>
           </Card>

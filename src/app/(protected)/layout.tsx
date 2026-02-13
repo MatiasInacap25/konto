@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 
@@ -9,10 +9,8 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Use cached auth function (server-cache-react)
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
@@ -81,7 +79,7 @@ export default async function ProtectedLayout({
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-card">
       {/* Sidebar */}
       <Sidebar />
 

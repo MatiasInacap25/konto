@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { signOut } from "@/actions/auth";
-import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared";
 import {
   LogOut,
   User,
   ChevronDown,
-  Bell,
 } from "lucide-react";
 
 type HeaderProps = {
@@ -29,13 +28,9 @@ export function Header({ user }: HeaderProps) {
       </div>
 
       {/* Right side - User menu */}
-      <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <button className="p-2 rounded-md hover:bg-muted transition-colors relative">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          {/* Notification dot */}
-          {/* <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" /> */}
-        </button>
+      <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <ThemeToggle />
 
         {/* User dropdown */}
         <div className="relative">

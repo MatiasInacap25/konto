@@ -101,8 +101,10 @@ export function UpcomingRecurrings({
           <div
             key={rec.id}
             className={cn(
-              "flex items-center justify-between py-2 border-b last:border-0",
-              overdue && !isRegistered && "bg-red-50 -mx-2 px-2 rounded-md"
+              "flex items-center justify-between py-2 border-b-2 last:border-0",
+              overdue && !isRegistered
+                ? "border-amber-400 dark:border-amber-600"
+                : "border-border"
             )}
           >
             <div className="flex items-center gap-3">
@@ -110,10 +112,10 @@ export function UpcomingRecurrings({
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center",
                   isRegistered
-                    ? "bg-green-100 text-green-600"
+                    ? "bg-green-100 dark:bg-green-500/20 text-green-600"
                     : overdue
-                    ? "bg-red-100 text-red-600"
-                    : "bg-blue-100 text-blue-600"
+                    ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600"
+                    : "bg-blue-100 dark:bg-blue-500/20 text-blue-600"
                 )}
               >
                 {isRegistered ? (
@@ -131,7 +133,7 @@ export function UpcomingRecurrings({
                   isRegistered
                     ? "text-green-600"
                     : overdue
-                    ? "text-red-600 font-medium"
+                    ? "text-amber-600 dark:text-amber-500 font-medium"
                     : "text-muted-foreground"
                 )}>
                   {isRegistered 
@@ -160,7 +162,6 @@ export function UpcomingRecurrings({
               {overdue && !isRegistered && (
                 <Button
                   size="sm"
-                  variant="outline"
                   className="h-7 text-xs"
                   onClick={() => handleRegisterPayment(rec.id)}
                   disabled={isLoading}
