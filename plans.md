@@ -10,7 +10,7 @@ El objetivo de este plan es que el usuario experimente la magia de tener su vida
 
     Suscripciones / Gastos Fijos: Límite de 5 activas (Suficiente para Netflix, celular y un par más).
 
-    Reglas de Impuestos (Tax Rules): 1 regla por Workspace (Sirve para separar el IVA básico, pero no para hacer Profit First complejo).
+    Reglas de ingresos: 1 regla por Workspace (Útil para calcular IVA automáticamente, pero no para hacer Profit First complejo).
 
     Bot de WhatsApp: ❌ No disponible. Ingreso manual desde la app web.
 
@@ -28,7 +28,7 @@ Para el freelancer establecido. Aquí vendes Personalización y Paz Mental. El u
 
     Suscripciones: Ilimitadas.
 
-    Reglas de Impuestos (Tax Rules): Ilimitadas. Habilita el sistema de "Sobres Virtuales" (Impuestos + Ahorro + Inversión + Sueldo).
+    Reglas de ingresos: Ilimitadas. Habilita el sistema de "Sobres Virtuales" (Impuestos + Ahorro + Inversión + Sueldo). Útil para calcular IVA, Ganancias, etc.
 
     Proyección (Runway): Gráfico de flujo de caja futuro habilitado.
 

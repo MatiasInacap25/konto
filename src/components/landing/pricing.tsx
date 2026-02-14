@@ -12,15 +12,15 @@ const plans = [
     name: "Starter",
     price: "Gratis",
     period: "",
-    description: "Experimenta la magia de tener todo en un solo lugar",
+    description: "Experimentá la magia de tener tu vida personal y tu negocio en un solo lugar",
     features: [
-      "1 Workspace Personal + 1 Negocio",
-      "2 cuentas por workspace (Banco + Efectivo)",
+      "1 Personal + 1 Negocio",
+      "2 cuentas por workspace",
       "Categorías predeterminadas",
       "Hasta 5 suscripciones activas",
-      "1 regla de impuestos por workspace",
+      "1 Regla de ingresos (útil para calcular IVA)",
+      "Ingreso manual desde la web",
     ],
-    limitations: ["Sin bot de WhatsApp"],
     cta: "Empezar gratis",
     href: "/register",
     highlighted: false,
@@ -29,17 +29,17 @@ const plans = [
     name: "Pro",
     price: "$12",
     period: "/mes",
-    description: "Para el freelancer que necesita personalización total",
+    description: "Personalización total y paz mental para tu negocio",
     features: [
       "1 Personal + hasta 3 Negocios",
       "Cuentas ilimitadas",
-      "Categorías personalizables",
+      "Categorías ilimitadas y personalizables",
       "Suscripciones ilimitadas",
-      "Reglas de impuestos ilimitadas",
-      "Proyección de flujo (Runway)",
-      "Adjuntar recibos",
+      "Reglas de ingresos ilimitadas (calculá IVA, Ganancias, etc.)",
+      "Proyección de flujo de caja (Runway)",
+      "Adjuntar fotos de recibos",
+      "Sobres virtuales (Profit First)",
     ],
-    limitations: ["Sin bot de WhatsApp"],
     cta: "Elegir Pro",
     href: "/register?plan=pro",
     highlighted: true,
@@ -48,16 +48,16 @@ const plans = [
     name: "Business",
     price: "$29",
     period: "/mes",
-    description: "Delega la administración en nuestra IA",
+    description: "Delegá la administración en nuestra IA. Vendé, que nosotros contamos.",
     features: [
       "Hasta 10 negocios",
-      "Bot de WhatsApp con IA",
-      "Registro por audio o texto",
-      "Escáner de recibos (OCR)",
-      "Consultas por chat",
+      "Finance Bot con IA por WhatsApp",
+      "Registrá gastos por audio o texto",
+      "Escáner inteligente de recibos (OCR)",
+      "Consultá tu saldo por chat",
       "Soporte prioritario",
+      "Todo lo de Pro incluido",
     ],
-    limitations: [],
     cta: "Elegir Business",
     href: "/register?plan=business",
     highlighted: false,
@@ -117,14 +117,6 @@ export function Pricing() {
                     <li key={feature} className="flex items-start gap-2">
                       <CheckIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                  {plan.limitations.map((limitation) => (
-                    <li key={limitation} className="flex items-start gap-2">
-                      <XIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {limitation}
-                      </span>
                     </li>
                   ))}
                 </ul>

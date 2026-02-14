@@ -95,13 +95,17 @@ export async function createTransaction(
       return { success: false, error: error || "No autorizado" };
     }
 
-    // Verificar que la cuenta pertenece al workspace
+    // Verificar que la cuenta pertenece al workspace y no está archivada
     const account = await prisma.account.findFirst({
       where: { id: validInput.accountId, workspaceId: validInput.workspaceId },
     });
-    
+
     if (!account) {
       return { success: false, error: "Cuenta no encontrada" };
+    }
+
+    if (account.archivedAt) {
+      return { success: false, error: "No se pueden crear transacciones en cuentas archivadas. Restaurá la cuenta primero." };
     }
 
     // Calcular el cambio de balance

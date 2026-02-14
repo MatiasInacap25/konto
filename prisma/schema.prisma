@@ -91,6 +91,8 @@ model Account {
   name          String
   balance       Decimal     @default(0.00) @db.Decimal(10, 2)
   isBusiness    Boolean     @default(false)
+  archivedAt    DateTime?   // Soft delete - null = activa, con fecha = archivada
+  isSystem      Boolean     @default(false) // true = cuenta del sistema (no se puede editar/eliminar)
 
   // Relación estricta con Workspace (no con User directo)
   workspaceId   String
@@ -98,6 +100,9 @@ model Account {
 
   transactions  Transaction[]
   recurrings    Recurring[]
+
+  // Index para filtrar rápido activas vs archivadas
+  @@index([workspaceId, archivedAt])
 }
 
 model Category {

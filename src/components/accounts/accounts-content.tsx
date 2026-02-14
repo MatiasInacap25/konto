@@ -6,16 +6,17 @@ import { AccountsClient } from "./accounts-client";
 
 type AccountsContentProps = {
   workspaceId?: string;
+  showArchived?: boolean;
 };
 
-export async function AccountsContent({ workspaceId }: AccountsContentProps) {
+export async function AccountsContent({ workspaceId, showArchived = false }: AccountsContentProps) {
   const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const data = await getWorkspaceAccountsData(user.id, workspaceId);
+  const data = await getWorkspaceAccountsData(user.id, workspaceId, showArchived);
 
   if (!data) {
     return (
@@ -28,7 +29,7 @@ export async function AccountsContent({ workspaceId }: AccountsContentProps) {
     );
   }
 
-  const { workspace, accounts, totalBalance } = data;
+  const { workspace, accounts, totalBalance, archivedCount } = data;
 
   // Currency formatter
   const formatCurrency = (amount: number) => {
@@ -74,6 +75,8 @@ export async function AccountsContent({ workspaceId }: AccountsContentProps) {
         currency={workspace.currency}
         workspaceId={workspace.id}
         workspaceType={workspace.type}
+        archivedCount={archivedCount}
+        showArchived={showArchived}
       />
     </div>
   );

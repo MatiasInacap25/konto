@@ -10,6 +10,8 @@ export type AccountWithStats = {
   type: AccountType;
   balance: number;
   isBusiness: boolean;
+  isSystem: boolean;
+  archivedAt: Date | null;
   lastActivityAt: Date | null;
   transactionCount: number;
 };
@@ -28,6 +30,8 @@ export type AccountListItem = {
   type: AccountType;
   balance: number;
   isBusiness: boolean;
+  isSystem: boolean;
+  archivedAt: Date | null;
   lastActivityAt: Date | null;
 };
 

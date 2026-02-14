@@ -63,9 +63,13 @@ export const getWorkspaceWithDashboardData = cache(
       recentTransactions,
       upcomingRecurrings,
     ] = await Promise.all([
-      // Accounts with balance
+      // Accounts with balance (only active, not archived, not system)
       prisma.account.findMany({
-        where: { workspaceId: workspace.id },
+        where: {
+          workspaceId: workspace.id,
+          archivedAt: null,
+          isSystem: false,
+        },
         select: { id: true, name: true, balance: true },
       }),
 
@@ -208,7 +212,13 @@ export const getWorkspaceTransactionData = cache(
         },
       }),
       prisma.account.findMany({
-        where: { workspaceId: workspace.id },
+        where: {
+          workspaceId: workspace.id,
+          OR: [
+            { archivedAt: null },
+            { isSystem: true }, // Include system accounts for transaction display
+          ],
+        },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
@@ -236,20 +246,29 @@ export const getWorkspaceTransactionData = cache(
 /**
  * Get workspace data for accounts page
  * Returns accounts with last activity and transaction counts
+ * By default returns only active accounts, can include archived with flag
  */
 export const getWorkspaceAccountsData = cache(
-  async (userId: string, workspaceId?: string) => {
+  async (userId: string, workspaceId?: string, includeArchived = false) => {
     const workspace = await getWorkspace(userId, workspaceId);
     if (!workspace) return null;
 
     // Get accounts with their stats in parallel
+    // Always include system accounts (like "Eliminadas"), even when not showing archived
     const accounts = await prisma.account.findMany({
-      where: { workspaceId: workspace.id },
+      where: {
+        workspaceId: workspace.id,
+        ...(includeArchived
+          ? {} // When showing archived, don't filter by archivedAt (show all)
+          : { archivedAt: null }), // When not showing archived, only show active
+      },
       select: {
         id: true,
         name: true,
         balance: true,
         isBusiness: true,
+        isSystem: true,
+        archivedAt: true,
         transactions: {
           select: { date: true },
           orderBy: { date: "desc" },
@@ -259,11 +278,19 @@ export const getWorkspaceAccountsData = cache(
           select: { transactions: true },
         },
       },
-      orderBy: [{ balance: "desc" }, { name: "asc" }],
+      orderBy: [
+        { isSystem: "desc" }, // System accounts last
+        { archivedAt: "asc" }, // Active first (nulls first), then archived
+        { balance: "desc" },
+        { name: "asc" },
+      ],
     });
 
-    // Calculate total balance
-    const totalBalance = accounts.reduce(
+    // Calculate total balance (only active, non-system accounts)
+    const activeAccounts = accounts.filter(
+      (acc) => acc.archivedAt === null && !acc.isSystem
+    );
+    const totalBalance = activeAccounts.reduce(
       (sum, acc) => sum + Number(acc.balance),
       0
     );
@@ -274,14 +301,22 @@ export const getWorkspaceAccountsData = cache(
       name: acc.name,
       balance: Number(acc.balance),
       isBusiness: acc.isBusiness,
+      isSystem: acc.isSystem,
+      archivedAt: acc.archivedAt,
       lastActivityAt: acc.transactions[0]?.date || null,
       transactionCount: acc._count.transactions,
     }));
+
+    // Count archived accounts (exclude system accounts)
+    const archivedCount = accounts.filter(
+      (acc) => acc.archivedAt !== null && !acc.isSystem
+    ).length;
 
     return {
       workspace,
       accounts: accountsWithStats,
       totalBalance,
+      archivedCount,
     };
   }
 );
