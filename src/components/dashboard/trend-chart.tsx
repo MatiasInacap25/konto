@@ -9,8 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 import {
   Select,
@@ -27,10 +25,10 @@ type TrendChartProps = {
   currency: string;
 };
 
-type TimeRange = "1m" | "3m" | "6m" | "1y";
+type TimeRange = "30d" | "3m" | "6m" | "1y";
 
 export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>("1m");
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-CL", {
@@ -43,15 +41,17 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
   // Filter data based on selected time range
   const chartData = useMemo(() => {
     switch (timeRange) {
-      case "1m":
-        // Show daily data for current month
+      case "30d":
+        // Show last 30 days with data
         return {
-          data: dailyData.map((d) => ({
-            label: d.day,
-            income: d.income,
-            expense: d.expense,
-          })),
-          isDaily: true,
+          data: dailyData
+            .slice(-30) // Last 30 days
+            .map((d) => ({
+              label: d.day,
+              income: d.income,
+              expense: d.expense,
+            })),
+          xAxisKey: "label",
         };
       case "3m":
         // Show last 3 months
@@ -61,7 +61,7 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
             income: d.income,
             expense: d.expense,
           })),
-          isDaily: false,
+          xAxisKey: "label",
         };
       case "6m":
         // Show last 6 months
@@ -71,7 +71,7 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
             income: d.income,
             expense: d.expense,
           })),
-          isDaily: false,
+          xAxisKey: "label",
         };
       case "1y":
         // Show all 12 months
@@ -81,10 +81,10 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
             income: d.income,
             expense: d.expense,
           })),
-          isDaily: false,
+          xAxisKey: "label",
         };
       default:
-        return { data: [], isDaily: false };
+        return { data: [], xAxisKey: "label" };
     }
   }, [timeRange, monthlyData, dailyData]);
 
@@ -103,7 +103,7 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
   }
 
   const timeRangeOptions = [
-    { value: "1m", label: "Este mes" },
+    { value: "30d", label: "Últimos 30 días" },
     { value: "3m", label: "3 meses" },
     { value: "6m", label: "6 meses" },
     { value: "1y", label: "1 año" },
@@ -114,7 +114,7 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
       <div className="flex items-center justify-between mb-6">
         <h3 className="font-semibold">Tendencia</h3>
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -129,119 +129,68 @@ export function TrendChart({ monthlyData, dailyData, currency }: TrendChartProps
 
       <div className="h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          {chartData.isDaily ? (
-            // Bar chart for daily data (current month)
-            <BarChart
-              data={chartData.data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "currentColor" }}
-                className="text-muted-foreground"
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "currentColor" }}
-                tickFormatter={(value) => {
-                  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-                  if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-                  return `$${value}`;
-                }}
-                className="text-muted-foreground"
-              />
-              <Tooltip
-                formatter={(value) => formatCurrency(Number(value))}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                }}
-                labelStyle={{ color: "hsl(var(--popover-foreground))" }}
-              />
-              <Bar
-                dataKey="income"
-                fill="#22c55e"
-                fillOpacity={0.8}
-                name="Ingresos"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="expense"
-                fill="#ef4444"
-                fillOpacity={0.8}
-                name="Gastos"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          ) : (
-            // Area chart for monthly data
-            <AreaChart
-              data={chartData.data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "currentColor" }}
-                className="text-muted-foreground"
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "currentColor" }}
-                tickFormatter={(value) => {
-                  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-                  if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-                  return `$${value}`;
-                }}
-                className="text-muted-foreground"
-              />
-              <Tooltip
-                formatter={(value) => formatCurrency(Number(value))}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                }}
-                labelStyle={{ color: "hsl(var(--popover-foreground))" }}
-              />
-              <Area
-                type="monotone"
-                dataKey="income"
-                stroke="#22c55e"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorIncome)"
-                name="Ingresos"
-              />
-              <Area
-                type="monotone"
-                dataKey="expense"
-                stroke="#ef4444"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorExpense)"
-                name="Gastos"
-              />
-            </AreaChart>
-          )}
+          <AreaChart
+            data={chartData.data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "currentColor" }}
+              interval={timeRange === "30d" ? 4 : 0} // Show every 5th day for 30d view
+              className="text-muted-foreground"
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "currentColor" }}
+              tickFormatter={(value) => {
+                if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+                if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
+                return `$${value}`;
+              }}
+              className="text-muted-foreground"
+            />
+            <Tooltip
+              formatter={(value) => formatCurrency(Number(value))}
+              contentStyle={{
+                backgroundColor: "hsl(var(--popover))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "var(--radius)",
+              }}
+              labelStyle={{ color: "hsl(var(--popover-foreground))" }}
+            />
+            <Area
+              type="monotone"
+              dataKey="income"
+              stroke="#22c55e"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorIncome)"
+              name="Ingresos"
+            />
+            <Area
+              type="monotone"
+              dataKey="expense"
+              stroke="#ef4444"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorExpense)"
+              name="Gastos"
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
 
