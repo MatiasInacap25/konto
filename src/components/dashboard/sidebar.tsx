@@ -21,6 +21,7 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -49,6 +50,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cuentas",
     href: "/accounts",
     icon: Wallet,
+  },
+  {
+    label: "Reportes",
+    href: "/reports",
+    icon: BarChart3,
   },
   {
     label: "Categorías",
