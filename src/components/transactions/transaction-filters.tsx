@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CalendarIcon, X, SlidersHorizontal } from "lucide-react";
+import { CalendarIcon, X, Search } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -17,10 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import type { AccountOption, CategoryOption } from "@/types/transactions";
 
@@ -29,6 +31,14 @@ type TransactionFiltersProps = {
   categories: CategoryOption[];
   workspaceId: string;
 };
+
+// Helper para formatear fecha a YYYY-MM-DD en timezone local
+function formatDateToString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function TransactionFilters({
   accounts,
@@ -43,6 +53,16 @@ export function TransactionFilters({
   const currentCategory = searchParams.get("category");
   const currentStartDate = searchParams.get("from");
   const currentEndDate = searchParams.get("to");
+
+  // Estado local para el date picker (no aplica hasta que se confirma)
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: currentStartDate ? new Date(currentStartDate + "T00:00:00") : undefined,
+    to: currentEndDate ? new Date(currentEndDate + "T00:00:00") : undefined,
+  });
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const activeFiltersCount = [
     currentAccount,
@@ -77,8 +97,32 @@ export function TransactionFilters({
     if (workspaceId) {
       params.set("workspace", workspaceId);
     }
+    setDateRange({ from: undefined, to: undefined });
     router.push(`/transactions?${params.toString()}`);
   }, [router, workspaceId]);
+
+  const applyDateFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (workspaceId) params.set("workspace", workspaceId);
+
+    if (dateRange.from) {
+      params.set("from", formatDateToString(dateRange.from));
+    } else {
+      params.delete("from");
+    }
+    if (dateRange.to) {
+      params.set("to", formatDateToString(dateRange.to));
+    } else {
+      params.delete("to");
+    }
+
+    router.push(`/transactions?${params.toString()}`);
+    setIsCalendarOpen(false);
+  }, [dateRange, router, searchParams, workspaceId]);
+
+  const clearDateFilter = useCallback(() => {
+    setDateRange({ from: undefined, to: undefined });
+  }, []);
 
   const incomeCategories = categories.filter((c) => c.type === "INCOME");
   const expenseCategories = categories.filter((c) => c.type === "EXPENSE");
@@ -191,9 +235,9 @@ export function TransactionFilters({
           </SelectContent>
         </Select>
 
-        {/* Rango de fechas */}
-        <Popover>
-          <PopoverTrigger asChild>
+        {/* Rango de fechas con Sheet */}
+        <Sheet open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <SheetTrigger asChild>
             <Button
               variant="outline"
               size="sm"
@@ -207,48 +251,80 @@ export function TransactionFilters({
               {currentStartDate || currentEndDate ? (
                 <span>
                   {currentStartDate
-                    ? format(new Date(currentStartDate), "d MMM", { locale: es })
+                    ? format(new Date(currentStartDate + "T00:00:00"), "d MMM", { locale: es })
                     : "..."}
                   {" – "}
                   {currentEndDate
-                    ? format(new Date(currentEndDate), "d MMM", { locale: es })
+                    ? format(new Date(currentEndDate + "T00:00:00"), "d MMM", { locale: es })
                     : "..."}
                 </span>
               ) : (
                 <span className="text-muted-foreground">Período</span>
               )}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              locale={es}
-              selected={{
-                from: currentStartDate ? new Date(currentStartDate) : undefined,
-                to: currentEndDate ? new Date(currentEndDate) : undefined,
-              }}
-              onSelect={(range) => {
-                const params = new URLSearchParams(searchParams.toString());
-                if (workspaceId) params.set("workspace", workspaceId);
-
-                if (range?.from) {
-                  params.set("from", range.from.toISOString().split("T")[0]);
-                } else {
-                  params.delete("from");
-                }
-                if (range?.to) {
-                  params.set("to", range.to.toISOString().split("T")[0]);
-                } else {
-                  params.delete("to");
-                }
-
-                router.push(`/transactions?${params.toString()}`);
-              }}
-              numberOfMonths={2}
-              className="rounded-md border-0"
-            />
-          </PopoverContent>
-        </Popover>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[600px] sm:h-[500px] flex flex-col">
+            <SheetHeader className="pb-4 border-b">
+              <SheetTitle className="text-center">
+                {dateRange.from && dateRange.to
+                  ? `${format(dateRange.from, "d 'de' MMMM", { locale: es })} – ${format(dateRange.to, "d 'de' MMMM", { locale: es })}`
+                  : dateRange.from
+                  ? `Desde ${format(dateRange.from, "d 'de' MMMM", { locale: es })}...`
+                  : dateRange.to
+                  ? `Hasta ${format(dateRange.to, "d 'de' MMMM", { locale: es })}`
+                  : "Seleccioná un rango de fechas"}
+              </SheetTitle>
+            </SheetHeader>
+            
+            {/* Calendar */}
+            <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center">
+              <Calendar
+                mode="range"
+                locale={es}
+                selected={{
+                  from: dateRange.from,
+                  to: dateRange.to,
+                }}
+                onSelect={(range) => {
+                  setDateRange({
+                    from: range?.from,
+                    to: range?.to,
+                  });
+                }}
+                numberOfMonths={2}
+                className="rounded-md border-0"
+              />
+              
+              {/* Botones justo debajo del calendario */}
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDateFilter}
+                  disabled={!dateRange.from && !dateRange.to}
+                >
+                  Limpiar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCalendarOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={applyDateFilter}
+                  disabled={!dateRange.from && !dateRange.to}
+                  className="gap-1.5"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {/* Limpiar filtros — solo si hay filtros activos */}
         {hasAnyFilter && (

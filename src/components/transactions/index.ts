@@ -4,3 +4,4 @@ export { TransactionSheet } from "./transaction-sheet";
 export { TransactionsSkeleton } from "./transactions-skeleton";
 export { TransactionsClient } from "./transactions-client";
 export { TransactionsContent } from "./transactions-content";
+export { CategorySummary } from "./category-summary";

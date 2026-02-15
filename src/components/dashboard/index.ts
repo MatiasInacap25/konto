@@ -1,2 +1,10 @@
 export { Sidebar } from "./sidebar";
 export { Header } from "./header";
+export { DashboardContent } from "./dashboard-content";
+export { DashboardSkeleton } from "./dashboard-skeleton";
+export { RecentTransactions } from "./recent-transactions";
+export { UpcomingRecurrings } from "./upcoming-recurrings";
+export { WorkspaceSelector } from "./workspace-selector";
+export { TrendChart } from "./trend-chart";
+export { InsightsPanel } from "./insights-panel";
+export { InsightCard } from "./insight-card";
