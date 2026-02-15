@@ -5,12 +5,13 @@ Guidelines for AI agents working in this Next.js 16 + Supabase + Prisma codebase
 ## Quick Reference
 
 ```bash
-npm run dev      # Start development server (Turbopack)
-npm run build    # Production build
-npm run lint     # Run ESLint
-npx prisma generate  # Regenerate Prisma client after schema changes
-npx prisma db push   # Push schema to database (dev)
-npx tsc --noEmit     # Type check without building
+npm run dev              # Start dev server (Turbopack)
+npm run build           # Production build
+npm run lint            # Run ESLint
+npx tsc --noEmit        # Type check without building
+npx prisma generate     # Regenerate Prisma client
+npx prisma db push      # Push schema to database (dev)
+npx prisma studio       # Open Prisma Studio
 ```
 
 **No test framework configured yet.**
@@ -24,6 +25,7 @@ npx tsc --noEmit     # Type check without building
 - **Auth**: Supabase Auth (email/password + OAuth)
 - **UI**: shadcn/ui (new-york style) + Tailwind CSS 4 + Lucide icons
 - **Language**: TypeScript (strict mode)
+- **Validation**: Zod
 
 ---
 
@@ -40,11 +42,12 @@ src/
 ├── components/
 │   ├── dashboard/   # Dashboard components
 │   ├── landing/     # Landing page sections
-│   ├── shared/      # Shared components (PlanGate, etc.)
+│   ├── shared/      # Shared components
 │   └── ui/          # shadcn/ui primitives (DO NOT EDIT)
 ├── hooks/           # Custom React hooks
 ├── lib/             # Utilities, clients, configs
-│   └── supabase/    # Supabase client (server.ts, client.ts)
+│   ├── validations/ # Zod schemas
+│   └── supabase/    # Supabase clients
 └── types/           # TypeScript type definitions
 ```
 
@@ -58,25 +61,21 @@ src/
 - Types: `{name}.ts` in `/types`
 
 ### Component Naming
-- **PascalCase**: `Sidebar`, `PlanGate`, `LoginForm`
+- **PascalCase**: `Sidebar`, `PlanGate`
 - **Named exports only** (no default exports)
 - Barrel exports in `index.ts` files
 
 ### Variables & Functions
-- **camelCase**: `handleSubmit`, `createClient`, `fetchUserPlan`
-- **SCREAMING_SNAKE_CASE** for constants: `PLAN_LIMITS`, `NAV_ITEMS`
+- **camelCase**: `handleSubmit`, `createClient`
+- **SCREAMING_SNAKE_CASE** for constants: `PLAN_LIMITS`
 
 ### Types
 - Use `type` keyword (not `interface`)
-- Inline types for simple props, extract for complex/reused
 - Props type naming: `{ComponentName}Props`
 
 ```typescript
 type HeaderProps = {
-  user: {
-    email: string;
-    name?: string | null;
-  };
+  user: { email: string; name?: string | null };
 };
 
 export function Header({ user }: HeaderProps) { ... }
@@ -108,10 +107,8 @@ import { Sidebar } from "./sidebar";
 - No directive needed
 - Use `async` functions for data fetching
 - Access Prisma, server-side Supabase, env vars directly
-- Pages and layouts are typically server components
 
 ```typescript
-// src/app/(protected)/dashboard/page.tsx
 export default async function DashboardPage() {
   const supabase = await createClient();
   const dbUser = await prisma.user.findUnique({ ... });
@@ -143,12 +140,26 @@ export function Counter() {
 Return error objects, don't throw:
 
 ```typescript
-export async function signIn(formData: FormData) {
-  const { error } = await supabase.auth.signInWithPassword({ ... });
-  if (error) {
-    return { error: error.message };
+"use server";
+
+type ActionResult = { success: boolean; error?: string; data?: { id: string } };
+
+export async function createAccount(input: Data): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) return { success: false, error: "No autenticado" };
+    
+    const validated = schema.safeParse(input);
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0]?.message };
+    }
+    
+    // ... create logic
+    return { success: true, data: { id: account.id } };
+  } catch (error) {
+    console.error("Create account failed:", error);
+    return { success: false, error: "Error al crear cuenta" };
   }
-  redirect("/dashboard");
 }
 ```
 
@@ -174,26 +185,17 @@ try {
 
 ### Prisma
 - Import from `@/lib/prisma` (singleton pattern)
-- Always `await prisma.generate` after schema changes
+- Use `React.cache()` for per-request memoization
 
-### Plan Gating
-```typescript
-import { usePlanAccess } from "@/hooks/use-plan";
-import { PlanGate } from "@/components/shared/plan-gate";
-
-// Hook usage
-const { canAccess, hasFeatureAccess } = usePlanAccess();
-if (canAccess("PRO")) { ... }
-
-// Component usage
-<PlanGate requiredPlan="PRO" behavior="blur">
-  <PremiumFeature />
-</PlanGate>
-```
+### Zod Validation
+- Place schemas in `lib/validations/{feature}.ts`
+- Export types with `z.infer<typeof schema>`
+- Use `safeParse` in Server Actions
 
 ### shadcn/ui
 - Use `cn()` for className merging
-- Install new components: `npx shadcn@latest add [component]`
+- Install: `npx shadcn@latest add [component]`
+- **Never edit files in `src/components/ui/`**
 
 ```typescript
 import { cn } from "@/lib/utils";
@@ -204,49 +206,16 @@ import { cn } from "@/lib/utils";
 
 **MANDATORY**: All pages in `(protected)/` MUST use Skeleton loading states.
 
-Pattern for pages with async data:
-
 ```typescript
-// page.tsx - Wrap content in Suspense with key for param changes
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/dashboard/page-skeleton";
-import { PageContent } from "@/components/dashboard/page-content";
 
 export default async function Page({ searchParams }) {
   const params = await searchParams;
-  const workspaceId = params.workspace || "default";
-
   return (
-    <Suspense key={workspaceId} fallback={<PageSkeleton />}>
+    <Suspense key={params.workspace} fallback={<PageSkeleton />}>
       <PageContent workspaceId={params.workspace} />
     </Suspense>
-  );
-}
-```
-
-- Use `<Skeleton />` from `@/components/ui/skeleton`
-- Create a `{page}-skeleton.tsx` component for each page
-- Create a `loading.tsx` file in each page directory
-- Use `key={workspaceId}` on Suspense to re-trigger skeleton on workspace change
-
-Example skeleton component:
-```typescript
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-
-export function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <Skeleton className="h-9 w-48" />
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-4 w-full" />
-        </CardContent>
-      </Card>
-    </div>
   );
 }
 ```
