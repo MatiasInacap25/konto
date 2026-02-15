@@ -45,7 +45,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
     );
   }
 
-  const { workspace, stats, recentTransactions, upcomingRecurrings, monthlyTrend, insights } = data;
+  const { workspace, stats, recentTransactions, upcomingRecurrings, monthlyTrend, dailyTrend, insights } = data;
   const currency = workspace.currency;
   const hasData = stats.totalAccounts > 0 || stats.totalTransactions > 0;
   const hasChartData = monthlyTrend.length > 0 && monthlyTrend.some(d => d.income > 0 || d.expense > 0);
@@ -162,7 +162,7 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
       ) : (
         <div className="space-y-8">
           {/* Trend Chart */}
-          {hasChartData && <TrendChart data={monthlyTrend} currency={currency} />}
+          {hasChartData && <TrendChart monthlyData={monthlyTrend} dailyData={dailyTrend} currency={currency} />}
 
           {/* Insights Panel */}
           <InsightsPanel insights={insights} />

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import type { Insight, MonthlyTrendData } from "@/types/insights";
+import type { Insight, MonthlyTrendData, DailyTrendData } from "@/types/insights";
 
 /**
  * Cached workspace queries - deduplicated per request
@@ -43,18 +43,20 @@ export const getWorkspace = cache(async (userId: string, workspaceId?: string) =
 });
 
 /**
- * Calculate monthly trend data (last 6 months)
+ * Calculate trend data (12 months + daily for current month)
  */
-async function getMonthlyTrend(
+async function getTrendData(
   workspaceId: string
-): Promise<MonthlyTrendData[]> {
+): Promise<{ monthly: MonthlyTrendData[]; daily: DailyTrendData[] }> {
   const now = new Date();
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Fetch all transactions for last 12 months
   const transactions = await prisma.transaction.findMany({
     where: {
       workspaceId,
-      date: { gte: sixMonthsAgo },
+      date: { gte: twelveMonthsAgo },
     },
     select: {
       amount: true,
@@ -63,13 +65,13 @@ async function getMonthlyTrend(
     },
   });
 
-  // Group by month
+  // Group by month (12 months)
   const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
   const monthlyData = new Map<string, { month: string; monthKey: string; income: number; expense: number }>();
 
-  // Initialize all 6 months (even if no data)
-  for (let i = 0; i < 6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+  // Initialize all 12 months
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     monthlyData.set(monthKey, {
       month: monthNames[d.getMonth()],
@@ -79,24 +81,61 @@ async function getMonthlyTrend(
     });
   }
 
+  // Group by day (current month only)
+  const dailyData = new Map<string, { day: string; dayKey: string; income: number; expense: number }>();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  // Initialize all days of current month
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), i);
+    const dayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+    dailyData.set(dayKey, {
+      day: `${i}`,
+      dayKey,
+      income: 0,
+      expense: 0,
+    });
+  }
+
   // Aggregate transactions
   for (const tx of transactions) {
     const d = new Date(tx.date);
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const data = monthlyData.get(monthKey);
-    if (data) {
+
+    // Monthly aggregation
+    const monthData = monthlyData.get(monthKey);
+    if (monthData) {
       if (tx.type === "INCOME") {
-        data.income += Number(tx.amount);
+        monthData.income += Number(tx.amount);
       } else {
-        data.expense += Number(tx.amount);
+        monthData.expense += Number(tx.amount);
+      }
+    }
+
+    // Daily aggregation (current month only)
+    if (d >= startOfMonth) {
+      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dayData = dailyData.get(dayKey);
+      if (dayData) {
+        if (tx.type === "INCOME") {
+          dayData.income += Number(tx.amount);
+        } else {
+          dayData.expense += Number(tx.amount);
+        }
       }
     }
   }
 
-  // Convert to array and sort
-  return Array.from(monthlyData.values()).sort((a, b) =>
+  // Convert to arrays and sort
+  const monthly = Array.from(monthlyData.values()).sort((a, b) =>
     a.monthKey.localeCompare(b.monthKey)
   );
+
+  const daily = Array.from(dailyData.values())
+    .filter(d => d.income > 0 || d.expense > 0) // Only days with data
+    .sort((a, b) => a.dayKey.localeCompare(b.dayKey));
+
+  return { monthly, daily };
 }
 
 /**
@@ -421,7 +460,7 @@ export const getWorkspaceWithDashboardData = cache(
       monthlyStats,
       recentTransactions,
       upcomingRecurrings,
-      monthlyTrend,
+      trendData,
     ] = await Promise.all([
       // Accounts with balance (only active, not archived, not system)
       prisma.account.findMany({
@@ -479,9 +518,12 @@ export const getWorkspaceWithDashboardData = cache(
         },
       }),
 
-      // Monthly trend (last 6 months)
-      getMonthlyTrend(workspace.id),
+      // Trend data (12 months + daily current month)
+      getTrendData(workspace.id),
     ]);
+
+    // Destructure trend data
+    const { monthly: monthlyTrend, daily: dailyTrend } = trendData;
 
     // Calculate totals
     const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
@@ -518,6 +560,7 @@ export const getWorkspaceWithDashboardData = cache(
         amount: Number(rec.amount),
       })),
       monthlyTrend,
+      dailyTrend,
       insights,
     };
   }

@@ -26,7 +26,20 @@ export type MonthlyTrendData = {
   expense: number;
 };
 
+export type DailyTrendData = {
+  day: string;
+  dayKey: string; // YYYY-MM-DD for sorting
+  income: number;
+  expense: number;
+};
+
+export type TrendData = {
+  monthly: MonthlyTrendData[];
+  daily: DailyTrendData[];
+};
+
 export type DashboardInsightsData = {
   monthlyTrend: MonthlyTrendData[];
+  dailyTrend: DailyTrendData[];
   insights: Insight[];
 };
