@@ -17,6 +17,8 @@ import { getUser } from "@/lib/auth";
 import { getWorkspaceWithDashboardData } from "@/lib/queries";
 import { RecentTransactions } from "./recent-transactions";
 import { UpcomingRecurrings } from "./upcoming-recurrings";
+import { TrendChart } from "./trend-chart";
+import { InsightsPanel } from "./insights-panel";
 
 type DashboardContentProps = {
   workspaceId?: string;
@@ -43,9 +45,10 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
     );
   }
 
-  const { workspace, stats, recentTransactions, upcomingRecurrings } = data;
+  const { workspace, stats, recentTransactions, upcomingRecurrings, monthlyTrend, insights } = data;
   const currency = workspace.currency;
   const hasData = stats.totalAccounts > 0 || stats.totalTransactions > 0;
+  const hasChartData = monthlyTrend.length > 0 && monthlyTrend.some(d => d.income > 0 || d.expense > 0);
 
   // Currency formatter - hoisted outside render for performance
   const formatCurrency = (amount: number) => {
@@ -157,37 +160,46 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Recent transactions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Transacciones Recientes</CardTitle>
-              <CardDescription>
-                Últimos movimientos en tus cuentas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentTransactions
-                transactions={recentTransactions}
-                currency={currency}
-              />
-            </CardContent>
-          </Card>
+        <div className="space-y-8">
+          {/* Trend Chart */}
+          {hasChartData && <TrendChart data={monthlyTrend} currency={currency} />}
 
-          {/* Upcoming recurrings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Próximos Pagos</CardTitle>
-              <CardDescription>Recurrentes que vencen pronto</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UpcomingRecurrings
-                recurrings={upcomingRecurrings}
-                currency={currency}
-                workspaceId={workspace.id}
-              />
-            </CardContent>
-          </Card>
+          {/* Insights Panel */}
+          <InsightsPanel insights={insights} />
+
+          {/* Recent transactions and recurrings */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Recent transactions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Transacciones Recientes</CardTitle>
+                <CardDescription>
+                  Últimos movimientos en tus cuentas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RecentTransactions
+                  transactions={recentTransactions}
+                  currency={currency}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Upcoming recurrings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Próximos Pagos</CardTitle>
+                <CardDescription>Recurrentes que vencen pronto</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UpcomingRecurrings
+                  recurrings={upcomingRecurrings}
+                  currency={currency}
+                  workspaceId={workspace.id}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
