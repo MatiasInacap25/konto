@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { RecurringCard } from "./recurring-card";
 import { RecurringSheet } from "./recurring-sheet";
 import { RegisterPaymentModal } from "./register-payment-modal";
+import { DeleteConfirmModal } from "./delete-confirm-modal";
 import type { RecurringWithRelations } from "@/types/recurrings";
 import type { CategoryOption } from "@/types/transactions";
 import type { AccountOption } from "@/types/accounts";
@@ -30,11 +31,12 @@ export function RecurringClient({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRecurring, setEditingRecurring] = useState<RecurringWithRelations | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringWithRelations | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCreate = () => {
     setEditingRecurring(null);
@@ -46,15 +48,21 @@ export function RecurringClient({
     setSheetOpen(true);
   };
 
-  const handleDelete = async (recurring: RecurringWithRelations) => {
-    const confirmed = confirm(`¿Estás seguro de eliminar "${recurring.name}"?`);
-    if (!confirmed) return;
+  const handleDelete = (recurring: RecurringWithRelations) => {
+    setSelectedRecurring(recurring);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedRecurring) return;
 
     setIsDeleting(true);
     try {
-      const result = await deleteRecurring(recurring.id, workspaceId);
+      const result = await deleteRecurring(selectedRecurring.id, workspaceId);
       if (result.success) {
         toast.success("Recurrente eliminado");
+        setDeleteModalOpen(false);
+        setSelectedRecurring(null);
       } else {
         toast.error(result.error || "Error al eliminar");
       }
@@ -279,6 +287,17 @@ export function RecurringClient({
         }}
         onConfirm={handleConfirmPayment}
         isProcessing={isProcessingPayment}
+      />
+
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        recurring={selectedRecurring}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedRecurring(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
       />
     </div>
   );

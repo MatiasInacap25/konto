@@ -23,6 +23,7 @@ export type RecurringWithRelations = {
     name: string;
     icon: string | null;
   } | null;
+  transactionCount?: number;
 };
 
 export type RecurringFormData = {
