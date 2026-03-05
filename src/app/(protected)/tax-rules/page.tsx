@@ -1,39 +1,70 @@
-import { Calculator } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { TaxRulesClient, TaxRulesSkeleton } from "@/components/tax-rules";
+import { getTaxRules } from "@/actions/tax-rules";
 
-export default function TaxRulesPage() {
+type TaxRulesPageProps = {
+  searchParams: Promise<{ workspace?: string }>;
+};
+
+async function TaxRulesContent({ workspaceId }: { workspaceId: string }) {
+  const taxRules = await getTaxRules(workspaceId);
+
+  // Transform Decimal to number
+  const transformedTaxRules = taxRules.map((rule) => ({
+    ...rule,
+    percentage: Number(rule.percentage),
+  }));
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Reglas de Impuestos</h1>
-        <p className="text-muted-foreground mt-1">
-          Configurá reglas para calcular impuestos automáticamente.
-        </p>
-      </div>
+    <TaxRulesClient
+      taxRules={transformedTaxRules}
+      workspaceId={workspaceId}
+    />
+  );
+}
 
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Próximamente
-          </CardTitle>
-          <CardDescription>
-            Esta sección está en desarrollo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Acá vas a poder crear reglas de impuestos (IVA, retenciones, etc.) 
-            que se aplican automáticamente a tus transacciones.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+export default async function TaxRulesPage({ searchParams }: TaxRulesPageProps) {
+  const user = await getUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  const params = await searchParams;
+  let workspaceId = params.workspace;
+
+  // Get workspace - use first one if not specified
+  if (!workspaceId) {
+    const firstWorkspace = await prisma.workspace.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+
+    if (!firstWorkspace) {
+      redirect("/workspaces");
+    }
+
+    workspaceId = firstWorkspace.id;
+  }
+
+  // Validate workspace belongs to user
+  const workspace = await prisma.workspace.findFirst({
+    where: {
+      id: workspaceId,
+      userId: user.id,
+    },
+  });
+
+  if (!workspace) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <Suspense fallback={<TaxRulesSkeleton />}>
+      <TaxRulesContent workspaceId={workspaceId} />
+    </Suspense>
   );
 }

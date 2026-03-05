@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 type RegisterPaymentModalProps = {
+  open?: boolean;
   recurring: RecurringWithRelations | null;
   currency: string;
   onClose: () => void;
@@ -16,13 +17,14 @@ type RegisterPaymentModalProps = {
 };
 
 export function RegisterPaymentModal({
+  open,
   recurring,
   currency,
   onClose,
   onConfirm,
   isProcessing,
 }: RegisterPaymentModalProps) {
-  if (!recurring) return null;
+  if (!open || !recurring) return null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-CL", {

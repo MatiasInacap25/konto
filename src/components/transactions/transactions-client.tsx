@@ -24,6 +24,7 @@ import type {
   TransactionWithRelations,
   AccountOption,
   CategoryOption,
+  TaxRuleOption,
 } from "@/types/transactions";
 
 // Dynamic import - only loads when sheet opens (bundle-dynamic-imports)
@@ -39,6 +40,7 @@ type TransactionsClientProps = {
   transactions: TransactionWithRelations[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  taxRules: TaxRuleOption[];
   workspaceId: string;
   workspaceType: "PERSONAL" | "BUSINESS";
   currency: string;
@@ -88,6 +90,7 @@ export function TransactionsClient({
   transactions,
   accounts,
   categories,
+  taxRules,
   workspaceId,
   workspaceType,
   currency,
@@ -337,6 +340,7 @@ export function TransactionsClient({
           transaction={editingTransaction}
           accounts={accounts}
           categories={categories}
+          taxRules={taxRules}
           workspaceId={workspaceId}
           workspaceType={workspaceType}
         />

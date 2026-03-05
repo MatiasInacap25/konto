@@ -1,12 +1,13 @@
 "use client";
 
-import { X, AlertTriangle, Trash2 } from "lucide-react";
+import { X, AlertTriangle, Trash2, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RecurringWithRelations } from "@/types/recurrings";
+import { formatPercentage } from "@/lib/validations/tax-rule";
+import type { TaxRuleWithRelations } from "@/types/tax-rules";
 
 type DeleteConfirmModalProps = {
   open?: boolean;
-  recurring: RecurringWithRelations | null;
+  taxRule: TaxRuleWithRelations | null;
   onClose: () => void;
   onConfirm: () => void;
   isDeleting: boolean;
@@ -14,12 +15,12 @@ type DeleteConfirmModalProps = {
 
 export function DeleteConfirmModal({
   open,
-  recurring,
+  taxRule,
   onClose,
   onConfirm,
   isDeleting,
 }: DeleteConfirmModalProps) {
-  if (!open || !recurring) return null;
+  if (!open || !taxRule) return null;
 
   return (
     <>
@@ -39,7 +40,7 @@ export function DeleteConfirmModal({
                 <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <h2 className="font-semibold">Eliminar recurrente</h2>
+                <h2 className="font-semibold">Eliminar regla</h2>
                 <p className="text-sm text-muted-foreground">
                   Esta acción no se puede deshacer
                 </p>
@@ -56,33 +57,23 @@ export function DeleteConfirmModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Recurring info */}
+          {/* Tax rule info */}
           <div className="bg-muted/50 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">{recurring.category?.icon || "📋"}</span>
+                <Percent className="w-6 h-6 text-primary" />
               </div>
-              <div className="min-w-0">
-                <h3 className="font-semibold truncate">{recurring.name}</h3>
+              <div>
+                <h3 className="font-semibold">{taxRule.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {recurring.type === "INCOME" ? "Ingreso" : "Gasto"} • {recurring.amount.toLocaleString("es-CL")}
+                  {formatPercentage(Number(taxRule.percentage))}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Warning */}
-          {(recurring.transactionCount ?? 0) > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                ⚠️ Este recurrente tiene transacciones asociadas. 
-                ¿Estás seguro de eliminarlo?
-              </p>
-            </div>
-          )}
-
           <p className="text-sm text-muted-foreground text-center">
-            ¿Querés eliminar <strong>{recurring.name}</strong>?
+            ¿Querés eliminar <strong>{taxRule.name}</strong>?
           </p>
         </div>
 

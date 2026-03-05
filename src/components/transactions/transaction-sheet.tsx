@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
@@ -42,6 +42,7 @@ import type {
   TransactionWithRelations,
   AccountOption,
   CategoryOption,
+  TaxRuleOption,
 } from "@/types/transactions";
 import type { TransactionScope } from "@prisma/client";
 
@@ -51,6 +52,7 @@ type TransactionSheetProps = {
   transaction?: TransactionWithRelations | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  taxRules?: TaxRuleOption[];
   workspaceId: string;
   workspaceType: "PERSONAL" | "BUSINESS";
 };
@@ -61,11 +63,15 @@ export function TransactionSheet({
   transaction,
   accounts,
   categories,
+  taxRules = [],
   workspaceId,
   workspaceType,
 }: TransactionSheetProps) {
   const [isPending, startTransition] = useTransition();
   const isEditing = !!transaction;
+  
+  // Estado local para la regla de impuesto
+  const [selectedTaxRuleId, setSelectedTaxRuleId] = useState<string>("");
 
   const {
     register,
@@ -84,11 +90,26 @@ export function TransactionSheet({
       date: new Date(),
       accountId: "",
       categoryId: "",
+      taxRuleId: "",
     },
   });
 
   const selectedType = watch("type");
   const selectedDate = watch("date");
+  const selectedAmount = watch("amount");
+
+  // Calcular impuesto
+  const calculatedTax = (() => {
+    const rule = taxRules.find(r => r.id === selectedTaxRuleId);
+    if (!rule || !selectedAmount) return null;
+    const amount = parseFloat(selectedAmount.replace(/[^\d.-]/g, ""));
+    if (isNaN(amount) || amount <= 0) return null;
+    return {
+      amount: amount * (rule.percentage / 100),
+      rate: rule.percentage,
+      ruleName: rule.name,
+    };
+  })();
 
   const filteredCategories = categories.filter((c) => c.type === selectedType);
 
@@ -104,6 +125,14 @@ export function TransactionSheet({
           accountId: transaction.accountId,
           categoryId: transaction.categoryId || "",
         });
+        // Seteamos el estado local para el impuesto
+        if (transaction.taxRate) {
+          // Buscar regla por porcentaje
+          const rule = taxRules.find(r => r.percentage === transaction.taxRate);
+          setSelectedTaxRuleId(rule?.id || "");
+        } else {
+          setSelectedTaxRuleId("");
+        }
       } else {
         reset({
           amount: "",
@@ -114,9 +143,10 @@ export function TransactionSheet({
           accountId: accounts[0]?.id || "",
           categoryId: "",
         });
+        setSelectedTaxRuleId("");
       }
     }
-  }, [open, transaction, reset, accounts, workspaceType]);
+  }, [open, transaction, reset, accounts, workspaceType, taxRules]);
 
   useEffect(() => {
     const currentCategoryId = watch("categoryId");
@@ -132,6 +162,11 @@ export function TransactionSheet({
     startTransition(async () => {
       const amount = parseAmount(data.amount);
 
+      // Calcular impuesto si hay regla seleccionada
+      const taxRule = taxRules.find(r => r.id === selectedTaxRuleId);
+      const taxAmount = taxRule ? amount * (taxRule.percentage / 100) : null;
+      const taxRate = taxRule ? taxRule.percentage : null;
+
       if (isEditing && transaction) {
         const result = await updateTransaction(
           {
@@ -143,6 +178,8 @@ export function TransactionSheet({
             date: data.date,
             accountId: data.accountId,
             categoryId: data.categoryId || null,
+            taxAmount: taxAmount,
+            taxRate: taxRate,
           },
           workspaceId
         );
@@ -154,6 +191,10 @@ export function TransactionSheet({
           toast.error(result.error || "Error al actualizar");
         }
       } else {
+        const taxRule = taxRules.find(r => r.id === selectedTaxRuleId);
+        const taxAmount = taxRule ? amount * (taxRule.percentage / 100) : null;
+        const taxRate = taxRule ? taxRule.percentage : null;
+        
         const result = await createTransaction({
           amount,
           description: data.description || undefined,
@@ -163,6 +204,8 @@ export function TransactionSheet({
           accountId: data.accountId,
           categoryId: data.categoryId || undefined,
           workspaceId,
+          taxAmount,
+          taxRate,
         });
 
         if (result.success) {
@@ -301,6 +344,58 @@ export function TransactionSheet({
                 </Select>
               </div>
             </div>
+
+            {/* Impuesto - aplica a expenses e incomes */}
+            {(selectedType === "EXPENSE" || selectedType === "INCOME") && taxRules.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">
+                  Impuesto <span className="text-muted-foreground font-normal">(opcional)</span>
+                </Label>
+                <Select
+                  value={selectedTaxRuleId || "__none__"}
+                  onValueChange={(value) =>
+                    setSelectedTaxRuleId(value === "__none__" ? "" : value)
+                  }
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Seleccionar regla de impuesto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin impuesto</SelectItem>
+                    {taxRules.filter(r => r.isActive !== false).map((rule) => (
+                      <SelectItem key={rule.id} value={rule.id}>
+                        {rule.name} ({rule.percentage}%)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Mostrar cálculo de impuesto */}
+                {calculatedTax && (
+                  <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {selectedType === "INCOME" ? "Bruto:" : "Subtotal:"}
+                      </span>
+                      <span className="font-medium">${parseFloat(selectedAmount.replace(/[^\d.-]/g, "")).toLocaleString("es-CL")}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{calculatedTax.ruleName} ({calculatedTax.rate}%):</span>
+                      <span className={selectedType === "INCOME" ? "font-medium text-green-600" : "font-medium text-destructive"}>
+                        {selectedType === "INCOME" ? "-" : "+"}${calculatedTax.amount.toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold border-t mt-1 pt-1">
+                      <span>{selectedType === "INCOME" ? "Neto a recibir:" : "Total:"}</span>
+                      <span>${(selectedType === "INCOME" 
+                        ? parseFloat(selectedAmount.replace(/[^\d.-]/g, "")) - calculatedTax.amount 
+                        : parseFloat(selectedAmount.replace(/[^\d.-]/g, "")) + calculatedTax.amount
+                      ).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Fecha */}
             <div className="space-y-1.5">

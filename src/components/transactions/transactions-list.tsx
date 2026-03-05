@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Receipt, Clock } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Receipt, Clock, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -233,6 +233,15 @@ export function TransactionsList({
                             </span>
                           )}
                         </p>
+                        {tx.taxRate != null && tx.taxAmount != null && (
+                          <Badge 
+                            variant="outline" 
+                            className="mt-1 text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground border-dashed gap-0.5"
+                          >
+                            <Percent className="h-2.5 w-2.5" />
+                            {Number(tx.taxRate)}% · {formatCurrency(Number(tx.taxAmount))}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Monto — alineado, monoespaciado */}
@@ -272,7 +281,7 @@ export function TransactionsList({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeleteId(tx.id)}
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            className="text-red-500 focus:text-red-500 focus:bg-red-500/10 [&_svg]:!text-red-500"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Eliminar

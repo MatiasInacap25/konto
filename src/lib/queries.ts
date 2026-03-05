@@ -608,7 +608,7 @@ export const getWorkspaceTransactionData = cache(
     }
 
     // Parallel data fetching
-    const [transactions, accounts, categories] = await Promise.all([
+    const [transactions, accounts, categories, taxRules] = await Promise.all([
       prisma.transaction.findMany({
         where,
         orderBy: { date: "desc" },
@@ -623,6 +623,8 @@ export const getWorkspaceTransactionData = cache(
           accountId: true,
           categoryId: true,
           workspaceId: true,
+          taxAmount: true,
+          taxRate: true,
           account: { select: { id: true, name: true } },
           category: { select: { id: true, name: true, icon: true } },
         },
@@ -645,6 +647,11 @@ export const getWorkspaceTransactionData = cache(
         select: { id: true, name: true, type: true, icon: true },
         orderBy: { name: "asc" },
       }),
+      prisma.taxRule.findMany({
+        where: { workspaceId: workspace.id },
+        select: { id: true, name: true, percentage: true, isActive: true },
+        orderBy: { name: "asc" },
+      }),
     ]);
 
     return {
@@ -652,9 +659,12 @@ export const getWorkspaceTransactionData = cache(
       transactions: transactions.map((tx) => ({
         ...tx,
         amount: Number(tx.amount),
+        taxAmount: tx.taxAmount ? Number(tx.taxAmount) : null,
+        taxRate: tx.taxRate ? Number(tx.taxRate) : null,
       })),
       accounts,
       categories,
+      taxRules,
     };
   }
 );

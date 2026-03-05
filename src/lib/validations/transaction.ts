@@ -36,6 +36,7 @@ export const createTransactionSchema = z.object({
   }),
   accountId: z.string().min(1, "Seleccioná una cuenta"),
   categoryId: z.string().optional(),
+  taxRuleId: z.string().optional(),
 });
 
 /**

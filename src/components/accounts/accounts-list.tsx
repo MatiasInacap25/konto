@@ -394,7 +394,7 @@ export function AccountsList({
                             setActionId(account.id);
                             setActionType("delete");
                           }}
-                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          className="text-red-500 focus:text-red-500 focus:bg-red-500/10 [&_svg]:!text-red-500"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Eliminar permanentemente

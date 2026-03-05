@@ -22,6 +22,8 @@ const createTransactionServerSchema = z.object({
   accountId: z.string().min(1, "Cuenta requerida"),
   categoryId: z.string().optional(),
   workspaceId: z.string().min(1, "Workspace requerido"),
+  taxAmount: z.number().optional().nullable(),
+  taxRate: z.number().optional().nullable(),
 });
 
 const updateTransactionServerSchema = z.object({
@@ -33,6 +35,8 @@ const updateTransactionServerSchema = z.object({
   date: z.coerce.date().optional(),
   accountId: z.string().min(1).optional(),
   categoryId: z.string().nullable().optional(),
+  taxAmount: z.number().optional().nullable(),
+  taxRate: z.number().optional().nullable(),
 });
 
 // ============================================
@@ -125,6 +129,8 @@ export async function createTransaction(
           accountId: validInput.accountId,
           categoryId: validInput.categoryId,
           workspaceId: validInput.workspaceId,
+          taxAmount: validInput.taxAmount ?? undefined,
+          taxRate: validInput.taxRate ?? undefined,
         },
       });
 
@@ -239,6 +245,8 @@ export async function updateTransaction(
           date: validInput.date,
           accountId: validInput.accountId,
           categoryId: validInput.categoryId,
+          taxAmount: validInput.taxAmount ?? undefined,
+          taxRate: validInput.taxRate ?? undefined,
         },
       });
     });

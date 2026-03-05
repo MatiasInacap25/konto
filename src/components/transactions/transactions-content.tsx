@@ -32,13 +32,14 @@ export async function TransactionsContent({
     );
   }
 
-  const { workspace, transactions, accounts, categories } = data;
+  const { workspace, transactions, accounts, categories, taxRules } = data;
 
   return (
     <TransactionsClient
       transactions={transactions}
       accounts={accounts}
       categories={categories}
+      taxRules={taxRules.map(t => ({ ...t, percentage: Number(t.percentage) }))}
       workspaceId={workspace.id}
       workspaceType={workspace.type}
       currency={workspace.currency}

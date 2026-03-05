@@ -10,6 +10,9 @@ export type TransactionWithRelations = {
   accountId: string;
   categoryId: string | null;
   workspaceId: string;
+  // Tax fields
+  taxAmount: number | null;
+  taxRate: number | null;
   account: {
     id: string;
     name: string;
@@ -40,4 +43,11 @@ export type CategoryOption = {
   name: string;
   type: TransactionType;
   icon: string | null;
+};
+
+export type TaxRuleOption = {
+  id: string;
+  name: string;
+  percentage: number;
+  isActive?: boolean;
 };

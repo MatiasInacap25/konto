@@ -134,6 +134,10 @@ model Transaction {
   type          TransactionType
   scope         TransactionScope // Para marcar gastos mixtos
 
+  // Impuesto aplicado (opcional)
+  taxAmount     Decimal?         @db.Decimal(10, 2)
+  taxRate       Decimal?         @db.Decimal(5, 2)  // Porcentaje aplicado (ej: 19 para 19%)
+
   // Relaciones
   workspaceId   String
   workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

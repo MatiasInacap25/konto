@@ -279,6 +279,7 @@ export function RecurringClient({
 
       {/* Register Payment Modal */}
       <RegisterPaymentModal
+        open={paymentModalOpen}
         recurring={selectedRecurring}
         currency={currency}
         onClose={() => {
@@ -291,6 +292,7 @@ export function RecurringClient({
 
       {/* Delete Confirm Modal */}
       <DeleteConfirmModal
+        open={deleteModalOpen}
         recurring={selectedRecurring}
         onClose={() => {
           setDeleteModalOpen(false);
