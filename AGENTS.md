@@ -247,3 +247,137 @@ Check `.agents/skills/` for specialized guidance:
 - `vercel-react-best-practices/` - Performance patterns
 - `brainstorming/` - Feature design workflow
 - `interface-design/` - UI/UX patterns
+
+---
+
+## Future: Workspace Sharing (Not Implemented Yet)
+
+This section documents the planned feature for sharing workspaces with other users.
+
+### Schema Design
+
+```prisma
+// Enums
+enum MemberRole {
+  OWNER      // Propietario: control total, puede eliminar workspace
+  ADMIN      // Administrador: gestionar miembros, editar settings
+  MEMBER     // Miembro: usar normalmente, sin gestión
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REJECTED
+}
+
+enum WorkspaceType {
+  PERSONAL   // Solo yo
+  BUSINESS  // Negocio/Empresa
+  SHARED    // Compartido con otros
+}
+
+// Workspace - owned by members, not directly by user
+model Workspace {
+  id          String            @id @default(cuid())
+  name        String
+  type        WorkspaceType     @default(PERSONAL)
+  currency    String            @default("CLP")
+  
+  // Relaciones
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+  transactions Transaction[]
+  accounts     Account[]
+  recurrings  Recurring[]
+  taxRules    TaxRule[]
+  categories  Category[]
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// Miembros del workspace
+model WorkspaceMember {
+  id        String      @id @default(cuid())
+  role      MemberRole  @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+  
+  userId    String      @db.Uuid
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+// Invitaciones con email (usar Resend)
+model WorkspaceInvitation {
+  id          String           @id @default(cuid())
+  code        String           @unique @default(cuid())
+  email       String           // email del invitado
+  role        MemberRole       @default(MEMBER)
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime         // 7 días por defecto
+  createdAt   DateTime         @default(now())
+  
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  invitedBy   String           @db.Uuid // quién invitó
+  inviter     User             @relation(fields: [invitedBy], references: [id])
+
+  @@unique([code, workspaceId])
+}
+
+// Category ahora pertenece al workspace (no al user)
+model Category {
+  id            String          @id @default(cuid())
+  name          String
+  icon          String?
+  type          TransactionType
+
+  userId        String?         @db.Uuid // DEPRECATED: migrate to workspace
+  user          User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  workspaceId   String?         // NUEVO: migrate from userId
+  workspace     Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  transactions  Transaction[]
+  recurrings   Recurring[]
+
+  @@unique([name, userId, type])        // DEPRECATED
+  @@unique([name, workspaceId, type])   // NUEVO
+  @@index([userId])
+  @@index([workspaceId])
+}
+```
+
+### Permissions Matrix
+
+| Acción | OWNER | ADMIN | MEMBER |
+|--------|-------|-------|--------|
+| Ver transacciones | ✅ | ✅ | ✅ |
+| Crear transacciones | ✅ | ✅ | ✅ |
+| Editar cuenta | ✅ | ✅ | ❌ |
+| Eliminar transacciones | ✅ | ✅ | ❌ |
+| Invitar miembros | ✅ | ✅ | ❌ |
+| Eliminar miembros | ✅ | ✅ | ❌ |
+| Eliminar workspace | ✅ | ❌ | ❌ |
+| Cambiar settings | ✅ | ✅ | ❌ |
+| Eliminar cuenta propia | ✅ | ❌ | ❌ |
+
+### Key Decisions
+
+1. **Email invitations via Resend**: Generate unique code, send email with link
+2. **Categories are workspace-scoped**: Each workspace has its own categories
+3. **Owner cannot leave**: Must transfer ownership to another member first
+4. **Categories migration**: When adding workspaceId to Category, migrate existing user categories
+
+### Implementation Notes
+
+- Use `where: { members: { some: { userId } } }` instead of `where: { userId }`
+- Check role before sensitive actions: `if (member.role !== 'OWNER' && member.role !== 'ADMIN') return error`
+- Invite link format: `/workspace/invite?code=xxx&workspace=yyy`
+- Use Resend API for sending invitation emails
