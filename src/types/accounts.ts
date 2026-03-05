@@ -4,6 +4,11 @@
 
 export type AccountType = "BANK" | "CASH" | "DIGITAL" | "CARD" | "INVESTMENT";
 
+export type AccountOption = {
+  id: string;
+  name: string;
+};
+
 export type AccountWithStats = {
   id: string;
   name: string;

@@ -2,7 +2,19 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import {
+  serverRecurringSchema,
+  updateRecurringSchema,
+  parseAmount,
+} from "@/lib/validations/recurring";
+
+type ActionResult = {
+  success: boolean;
+  error?: string;
+  data?: { id: string };
+};
 
 type RegisterPaymentResult = {
   success: boolean;
@@ -152,4 +164,280 @@ function calculateNextPayment(currentDate: Date, frequency: string): Date {
   }
 
   return date;
+}
+
+/**
+ * Get all recurrings for a workspace
+ */
+export async function getRecurrings(workspaceId: string) {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return [];
+    }
+
+    const recurrings = await prisma.recurring.findMany({
+      where: {
+        workspaceId,
+        workspace: {
+          userId: user.id,
+        },
+      },
+      include: {
+        account: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            icon: true,
+          },
+        },
+      },
+      orderBy: [
+        { isActive: "desc" },
+        { nextPayment: "asc" },
+      ],
+    });
+
+    return recurrings;
+  } catch (error) {
+    console.error("Error fetching recurrings:", error);
+    return [];
+  }
+}
+
+/**
+ * Create a new recurring
+ */
+export async function createRecurring(
+  input: {
+    name: string;
+    amount: string;
+    frequency: string;
+    nextPayment: string;
+    type: "INCOME" | "EXPENSE";
+    scope: "PERSONAL" | "BUSINESS" | "MIXED";
+    accountId?: string | null;
+    categoryId?: string | null;
+    workspaceId: string;
+  }
+): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "No autenticado" };
+    }
+
+    // Validate input
+    const amount = parseAmount(input.amount);
+    const nextPaymentDate = new Date(input.nextPayment);
+
+    if (isNaN(amount) || amount <= 0) {
+      return { success: false, error: "Monto inválido" };
+    }
+
+    if (isNaN(nextPaymentDate.getTime())) {
+      return { success: false, error: "Fecha inválida" };
+    }
+
+    // Verify workspace belongs to user
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: input.workspaceId,
+        userId: user.id,
+      },
+    });
+
+    if (!workspace) {
+      return { success: false, error: "Workspace no encontrado" };
+    }
+
+    // Create recurring
+    const recurring = await prisma.recurring.create({
+      data: {
+        name: input.name,
+        amount,
+        frequency: input.frequency as any,
+        nextPayment: nextPaymentDate,
+        type: input.type,
+        scope: input.scope,
+        accountId: input.accountId || null,
+        categoryId: input.categoryId || null,
+        workspaceId: input.workspaceId,
+      },
+    });
+
+    revalidatePath("/recurrings");
+    revalidatePath("/dashboard");
+
+    return { success: true, data: { id: recurring.id } };
+  } catch (error) {
+    console.error("Error creating recurring:", error);
+    return { success: false, error: "Error al crear el recurrente" };
+  }
+}
+
+/**
+ * Update an existing recurring
+ */
+export async function updateRecurring(
+  input: {
+    id: string;
+    name: string;
+    amount: string;
+    frequency: string;
+    nextPayment: string;
+    type: "INCOME" | "EXPENSE";
+    scope: "PERSONAL" | "BUSINESS" | "MIXED";
+    accountId?: string | null;
+    categoryId?: string | null;
+    workspaceId: string;
+  }
+): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "No autenticado" };
+    }
+
+    // Validate input
+    const amount = parseAmount(input.amount);
+    const nextPaymentDate = new Date(input.nextPayment);
+
+    if (isNaN(amount) || amount <= 0) {
+      return { success: false, error: "Monto inválido" };
+    }
+
+    if (isNaN(nextPaymentDate.getTime())) {
+      return { success: false, error: "Fecha inválida" };
+    }
+
+    // Verify recurring belongs to user's workspace
+    const existing = await prisma.recurring.findFirst({
+      where: {
+        id: input.id,
+        workspace: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Recurrente no encontrado" };
+    }
+
+    // Update recurring
+    await prisma.recurring.update({
+      where: { id: input.id },
+      data: {
+        name: input.name,
+        amount,
+        frequency: input.frequency as any,
+        nextPayment: nextPaymentDate,
+        type: input.type,
+        scope: input.scope,
+        accountId: input.accountId || null,
+        categoryId: input.categoryId || null,
+      },
+    });
+
+    revalidatePath("/recurrings");
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating recurring:", error);
+    return { success: false, error: "Error al actualizar el recurrente" };
+  }
+}
+
+/**
+ * Delete a recurring
+ */
+export async function deleteRecurring(
+  recurringId: string,
+  workspaceId: string
+): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "No autenticado" };
+    }
+
+    // Verify recurring belongs to user
+    const existing = await prisma.recurring.findFirst({
+      where: {
+        id: recurringId,
+        workspaceId,
+        workspace: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Recurrente no encontrado" };
+    }
+
+    await prisma.recurring.delete({
+      where: { id: recurringId },
+    });
+
+    revalidatePath("/recurrings");
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting recurring:", error);
+    return { success: false, error: "Error al eliminar el recurrente" };
+  }
+}
+
+/**
+ * Toggle recurring active status
+ */
+export async function toggleRecurring(
+  recurringId: string,
+  workspaceId: string
+): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "No autenticado" };
+    }
+
+    // Verify recurring belongs to user
+    const existing = await prisma.recurring.findFirst({
+      where: {
+        id: recurringId,
+        workspaceId,
+        workspace: {
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Recurrente no encontrado" };
+    }
+
+    await prisma.recurring.update({
+      where: { id: recurringId },
+      data: {
+        isActive: !existing.isActive,
+      },
+    });
+
+    revalidatePath("/recurrings");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error toggling recurring:", error);
+    return { success: false, error: "Error al cambiar el estado" };
+  }
 }
