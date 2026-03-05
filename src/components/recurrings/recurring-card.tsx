@@ -38,7 +38,9 @@ export function RecurringCard({
     <div
       className={cn(
         "group relative bg-card border rounded-xl p-4",
-        !recurring.isActive && "opacity-60",
+        "transition-all duration-200 ease-out",
+        "hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5",
+        !recurring.isActive && "opacity-60 hover:opacity-80",
         isOverdue && recurring.isActive && "border-amber-300 dark:border-amber-700"
       )}
     >

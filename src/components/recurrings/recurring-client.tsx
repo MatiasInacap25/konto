@@ -5,6 +5,7 @@ import { Plus, CreditCard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecurringCard } from "./recurring-card";
 import { RecurringSheet } from "./recurring-sheet";
+import { RegisterPaymentModal } from "./register-payment-modal";
 import type { RecurringWithRelations } from "@/types/recurrings";
 import type { CategoryOption } from "@/types/transactions";
 import type { AccountOption } from "@/types/accounts";
@@ -28,6 +29,9 @@ export function RecurringClient({
 }: RecurringClientProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRecurring, setEditingRecurring] = useState<RecurringWithRelations | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedRecurring, setSelectedRecurring] = useState<RecurringWithRelations | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -74,19 +78,28 @@ export function RecurringClient({
     }
   };
 
-  const handleRegisterPayment = async (recurring: RecurringWithRelations) => {
-    const confirmed = confirm(`¿Registrar pago de "${recurring.name}" por ${currency} ${Number(recurring.amount).toLocaleString("es-CL")}?`);
-    if (!confirmed) return;
+  const handleRegisterPayment = (recurring: RecurringWithRelations) => {
+    setSelectedRecurring(recurring);
+    setPaymentModalOpen(true);
+  };
 
+  const handleConfirmPayment = async () => {
+    if (!selectedRecurring) return;
+
+    setIsProcessingPayment(true);
     try {
-      const result = await registerRecurringPayment(recurring.id, workspaceId);
+      const result = await registerRecurringPayment(selectedRecurring.id, workspaceId);
       if (result.success) {
         toast.success("Pago registrado");
+        setPaymentModalOpen(false);
+        setSelectedRecurring(null);
       } else {
         toast.error(result.error || "Error al registrar pago");
       }
     } catch {
       toast.error("Error inesperado");
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -254,6 +267,18 @@ export function RecurringClient({
         currency={currency}
         accounts={accounts}
         categories={categories}
+      />
+
+      {/* Register Payment Modal */}
+      <RegisterPaymentModal
+        recurring={selectedRecurring}
+        currency={currency}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setSelectedRecurring(null);
+        }}
+        onConfirm={handleConfirmPayment}
+        isProcessing={isProcessingPayment}
       />
     </div>
   );
