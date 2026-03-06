@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared";
+import { KontoLogo } from "@/components/shared/konto-logo";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export async function Navbar() {
   const supabase = await createClient();
@@ -12,11 +13,7 @@ export async function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <div className="flex h-7 px-2 items-center justify-center rounded-md bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">Konto</span>
-          </div>
-        </Link>
+        <KontoLogo href="/" />
 
         {/* Navigation Links */}
         <nav className="hidden items-center gap-6 md:flex">

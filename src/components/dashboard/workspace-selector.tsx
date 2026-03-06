@@ -3,13 +3,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
-import { Home, Building2, ChevronDown, Check } from "lucide-react";
+import { Home, Building2, Check } from "lucide-react";
 
 type WorkspaceSelectorProps = {
   isCollapsed?: boolean;
+  /** Modo inline: no renderiza border-b ni padding externo */
+  inline?: boolean;
 };
 
-export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProps) {
+export function WorkspaceSelector({ isCollapsed = false, inline = false }: WorkspaceSelectorProps) {
   const { workspaces, activeWorkspace, switchWorkspace, isLoading, error } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,8 +32,8 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
   if (isLoading) {
     return (
       <div className={cn(
-        "border-b",
-        isCollapsed ? "px-2 py-3" : "px-4 py-3"
+        !inline && "border-b",
+        !inline && (isCollapsed ? "px-2 py-3" : "px-4 py-3")
       )}>
         <div className={cn(
           "animate-pulse bg-muted rounded-md",
@@ -46,8 +48,9 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
     console.error("WorkspaceSelector error:", error.message, error);
     return (
       <div className={cn(
-        "border-b text-xs text-red-500",
-        isCollapsed ? "px-2 py-3" : "px-4 py-3"
+        !inline && "border-b",
+        "text-xs text-red-500",
+        !inline && (isCollapsed ? "px-2 py-3" : "px-4 py-3")
       )}>
         {!isCollapsed && `Error: ${error.message}`}
       </div>
@@ -62,30 +65,27 @@ export function WorkspaceSelector({ isCollapsed = false }: WorkspaceSelectorProp
   const WorkspaceIcon = activeWorkspace.type === "PERSONAL" ? Home : Building2;
 
   return (
-    <div className={cn("border-b", isCollapsed ? "px-2 py-3" : "px-3 py-3")} ref={dropdownRef}>
+    <div
+      className={cn(!inline && "border-b", !inline && (isCollapsed ? "px-2 py-3" : "px-3 py-3"))}
+      ref={dropdownRef}
+    >
       <div className="relative">
         {/* Trigger Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "flex items-center gap-2 w-full rounded-md transition-colors",
+            "flex items-center justify-center gap-2.5 w-full rounded-md transition-colors",
             "hover:bg-muted",
-            isCollapsed ? "justify-center p-2" : "px-3 py-2"
+            isCollapsed ? "p-2" : "px-3 py-2.5"
           )}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
         >
-          <WorkspaceIcon className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+          <WorkspaceIcon className="w-5 h-5 flex-shrink-0 text-muted-foreground" />
           {!isCollapsed && (
-            <>
-              <span className="flex-1 text-left text-sm font-medium truncate">
-                {activeWorkspace.name}
-              </span>
-              <ChevronDown className={cn(
-                "w-4 h-4 text-muted-foreground transition-transform",
-                isOpen && "rotate-180"
-              )} />
-            </>
+            <span className="flex-1 text-left text-sm font-semibold truncate">
+              {activeWorkspace.name}
+            </span>
           )}
         </button>
 

@@ -192,3 +192,14 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* Scrollbar oculto — usado en sidebar nav */
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+  }
+}
