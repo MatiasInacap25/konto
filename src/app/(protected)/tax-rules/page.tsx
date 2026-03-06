@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TaxRulesClient, TaxRulesSkeleton } from "@/components/tax-rules";
+import { TaxRulesClient } from "@/components/tax-rules/tax-rules-client";
+import { TaxRulesSkeleton } from "@/components/tax-rules/tax-rules-skeleton";
 import { getTaxRules } from "@/actions/tax-rules";
 
 type TaxRulesPageProps = {
@@ -27,12 +28,11 @@ async function TaxRulesContent({ workspaceId }: { workspaceId: string }) {
 }
 
 export default async function TaxRulesPage({ searchParams }: TaxRulesPageProps) {
-  const user = await getUser();
+  const [user, params] = await Promise.all([getUser(), searchParams]);
   if (!user) {
     redirect("/login");
   }
 
-  const params = await searchParams;
   let workspaceId = params.workspace;
 
   // Get workspace - use first one if not specified
@@ -50,17 +50,7 @@ export default async function TaxRulesPage({ searchParams }: TaxRulesPageProps) 
     workspaceId = firstWorkspace.id;
   }
 
-  // Validate workspace belongs to user
-  const workspace = await prisma.workspace.findFirst({
-    where: {
-      id: workspaceId,
-      userId: user.id,
-    },
-  });
-
-  if (!workspace) {
-    redirect("/dashboard");
-  }
+  // Ownership validated inside getTaxRules server action — no redundant query needed
 
   return (
     <Suspense fallback={<TaxRulesSkeleton />}>

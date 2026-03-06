@@ -1,39 +1,25 @@
-import { Building2 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
+import { getUserWorkspacesWithCounts } from "@/lib/queries";
+import { WorkspacesClient } from "@/components/workspaces/workspaces-client";
+import { WorkspacesSkeleton } from "@/components/workspaces/workspaces-skeleton";
 
-export default function WorkspacesPage() {
+async function WorkspacesContent({ userId }: { userId: string }) {
+  const workspaces = await getUserWorkspacesWithCounts(userId);
+
+  return <WorkspacesClient workspaces={workspaces} />;
+}
+
+export default async function WorkspacesPage() {
+  const user = await getUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Workspaces</h1>
-        <p className="text-muted-foreground mt-1">
-          Gestioná tus espacios de trabajo personales y de negocio.
-        </p>
-      </div>
-
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Próximamente
-          </CardTitle>
-          <CardDescription>
-            Esta sección está en desarrollo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Acá vas a poder crear workspaces de negocio, configurar la moneda, 
-            y administrar la configuración de cada espacio.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <Suspense fallback={<WorkspacesSkeleton />}>
+      <WorkspacesContent userId={user.id} />
+    </Suspense>
   );
 }

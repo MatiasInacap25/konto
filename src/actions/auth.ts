@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
  */
 async function createUserWithPersonalWorkspace(userId: string, email: string, name: string | null) {
   // Crear usuario con su workspace Personal en una transacción
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       id: userId,
       email: email,
@@ -23,7 +23,22 @@ async function createUserWithPersonalWorkspace(userId: string, email: string, na
         },
       },
     },
+    include: {
+      workspaces: { select: { id: true } },
+    },
   });
+
+  // Create OWNER membership for the personal workspace
+  const personalWorkspace = user.workspaces[0];
+  if (personalWorkspace) {
+    await prisma.workspaceMember.create({
+      data: {
+        userId: userId,
+        workspaceId: personalWorkspace.id,
+        role: "OWNER",
+      },
+    });
+  }
 }
 
 export async function signUp(formData: FormData) {

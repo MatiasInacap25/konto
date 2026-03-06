@@ -1,17 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Plus, CreditCard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecurringCard } from "./recurring-card";
-import { RecurringSheet } from "./recurring-sheet";
-import { RegisterPaymentModal } from "./register-payment-modal";
-import { DeleteConfirmModal } from "./delete-confirm-modal";
 import type { RecurringWithRelations } from "@/types/recurrings";
 import type { CategoryOption } from "@/types/transactions";
 import type { AccountOption } from "@/types/accounts";
 import { deleteRecurring, toggleRecurring, registerRecurringPayment } from "@/actions/recurrings";
 import { toast } from "sonner";
+
+const RecurringSheet = dynamic(
+  () =>
+    import("./recurring-sheet").then((m) => ({
+      default: m.RecurringSheet,
+    })),
+  { ssr: false }
+);
+
+const RegisterPaymentModal = dynamic(
+  () =>
+    import("./register-payment-modal").then((m) => ({
+      default: m.RegisterPaymentModal,
+    })),
+  { ssr: false }
+);
+
+const DeleteConfirmModal = dynamic(
+  () =>
+    import("./delete-confirm-modal").then((m) => ({
+      default: m.DeleteConfirmModal,
+    })),
+  { ssr: false }
+);
 
 type RecurringClientProps = {
   recurrings: RecurringWithRelations[];
@@ -111,19 +133,25 @@ export function RecurringClient({
     }
   };
 
-  // Filter recurrings
-  const filteredRecurrings = recurrings.filter((rec) => {
+  // Filter and separate recurrings in a single pass
+  const activeRecurrings: RecurringWithRelations[] = [];
+  const pausedRecurrings: RecurringWithRelations[] = [];
+  let filteredCount = 0;
+
+  for (const rec of recurrings) {
     const matchesSearch = rec.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "ALL" || rec.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  // Separate by type and status
-  const activeRecurrings = filteredRecurrings.filter((r) => r.isActive);
-  const pausedRecurrings = filteredRecurrings.filter((r) => !r.isActive);
+    if (!matchesSearch || !matchesType) continue;
+    filteredCount++;
+    if (rec.isActive) {
+      activeRecurrings.push(rec);
+    } else {
+      pausedRecurrings.push(rec);
+    }
+  }
 
   const hasRecurrings = recurrings.length > 0;
-  const hasFilteredRecurrings = filteredRecurrings.length > 0;
+  const hasFilteredRecurrings = filteredCount > 0;
 
   return (
     <div className="space-y-6">
@@ -266,41 +294,47 @@ export function RecurringClient({
         </div>
       )}
 
-      {/* Sheet */}
-      <RecurringSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        recurring={editingRecurring}
-        workspaceId={workspaceId}
-        currency={currency}
-        accounts={accounts}
-        categories={categories}
-      />
+      {/* Sheet — lazy loaded */}
+      {sheetOpen && (
+        <RecurringSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          recurring={editingRecurring}
+          workspaceId={workspaceId}
+          currency={currency}
+          accounts={accounts}
+          categories={categories}
+        />
+      )}
 
-      {/* Register Payment Modal */}
-      <RegisterPaymentModal
-        open={paymentModalOpen}
-        recurring={selectedRecurring}
-        currency={currency}
-        onClose={() => {
-          setPaymentModalOpen(false);
-          setSelectedRecurring(null);
-        }}
-        onConfirm={handleConfirmPayment}
-        isProcessing={isProcessingPayment}
-      />
+      {/* Register Payment Modal — lazy loaded */}
+      {paymentModalOpen && (
+        <RegisterPaymentModal
+          open={paymentModalOpen}
+          recurring={selectedRecurring}
+          currency={currency}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedRecurring(null);
+          }}
+          onConfirm={handleConfirmPayment}
+          isProcessing={isProcessingPayment}
+        />
+      )}
 
-      {/* Delete Confirm Modal */}
-      <DeleteConfirmModal
-        open={deleteModalOpen}
-        recurring={selectedRecurring}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setSelectedRecurring(null);
-        }}
-        onConfirm={handleConfirmDelete}
-        isDeleting={isDeleting}
-      />
+      {/* Delete Confirm Modal — lazy loaded */}
+      {deleteModalOpen && (
+        <DeleteConfirmModal
+          open={deleteModalOpen}
+          recurring={selectedRecurring}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setSelectedRecurring(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   );
 }

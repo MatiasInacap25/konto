@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Calculator, Search } from "lucide-react";
+import { Plus, Building2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TaxRuleCard } from "./tax-rule-card";
-import type { TaxRuleWithRelations } from "@/types/tax-rules";
-import { deleteTaxRule, toggleTaxRule } from "@/actions/tax-rules";
+import { WorkspaceCard } from "./workspace-card";
+import type { WorkspaceWithCounts } from "@/types/workspaces";
+import { deleteWorkspace } from "@/actions/workspaces";
 import { toast } from "sonner";
 
-const TaxRuleSheet = dynamic(
-  () => import("./tax-rule-sheet").then((m) => ({ default: m.TaxRuleSheet })),
+const WorkspaceSheet = dynamic(
+  () =>
+    import("./workspace-sheet").then((m) => ({
+      default: m.WorkspaceSheet,
+    })),
   { ssr: false }
 );
 
@@ -22,47 +25,45 @@ const DeleteConfirmModal = dynamic(
   { ssr: false }
 );
 
-type TaxRulesClientProps = {
-  taxRules: TaxRuleWithRelations[];
-  workspaceId: string;
+type WorkspacesClientProps = {
+  workspaces: WorkspaceWithCounts[];
 };
 
-export function TaxRulesClient({
-  taxRules,
-  workspaceId,
-}: TaxRulesClientProps) {
+export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingTaxRule, setEditingTaxRule] = useState<TaxRuleWithRelations | null>(null);
+  const [editingWorkspace, setEditingWorkspace] =
+    useState<WorkspaceWithCounts | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedTaxRule, setSelectedTaxRule] = useState<TaxRuleWithRelations | null>(null);
+  const [selectedWorkspace, setSelectedWorkspace] =
+    useState<WorkspaceWithCounts | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleCreate = () => {
-    setEditingTaxRule(null);
+    setEditingWorkspace(null);
     setSheetOpen(true);
   };
 
-  const handleEdit = (taxRule: TaxRuleWithRelations) => {
-    setEditingTaxRule(taxRule);
+  const handleEdit = (workspace: WorkspaceWithCounts) => {
+    setEditingWorkspace(workspace);
     setSheetOpen(true);
   };
 
-  const handleDelete = (taxRule: TaxRuleWithRelations) => {
-    setSelectedTaxRule(taxRule);
+  const handleDelete = (workspace: WorkspaceWithCounts) => {
+    setSelectedWorkspace(workspace);
     setDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!selectedTaxRule) return;
+    if (!selectedWorkspace) return;
 
     setIsDeleting(true);
     try {
-      const result = await deleteTaxRule(selectedTaxRule.id, workspaceId);
+      const result = await deleteWorkspace(selectedWorkspace.id);
       if (result.success) {
-        toast.success("Regla eliminada");
+        toast.success("Workspace eliminado");
         setDeleteModalOpen(false);
-        setSelectedTaxRule(null);
+        setSelectedWorkspace(null);
       } else {
         toast.error(result.error || "Error al eliminar");
       }
@@ -73,43 +74,30 @@ export function TaxRulesClient({
     }
   };
 
-  const handleToggle = async (taxRule: TaxRuleWithRelations) => {
-    try {
-      const result = await toggleTaxRule(taxRule.id, workspaceId);
-      if (result.success) {
-        toast.success(taxRule.isActive ? "Regla desactivada" : "Regla activada");
-      } else {
-        toast.error(result.error || "Error al cambiar estado");
-      }
-    } catch {
-      toast.error("Error inesperado");
-    }
-  };
+  // Filter and separate workspaces in a single pass
+  const personalWorkspaces: WorkspaceWithCounts[] = [];
+  const businessWorkspaces: WorkspaceWithCounts[] = [];
 
-  // Filter and separate tax rules in a single pass
-  const activeTaxRules: TaxRuleWithRelations[] = [];
-  const inactiveTaxRules: TaxRuleWithRelations[] = [];
-
-  for (const rule of taxRules) {
-    if (!rule.name.toLowerCase().includes(searchTerm.toLowerCase())) continue;
-    if (rule.isActive) {
-      activeTaxRules.push(rule);
+  for (const ws of workspaces) {
+    if (!ws.name.toLowerCase().includes(searchTerm.toLowerCase())) continue;
+    if (ws.type === "PERSONAL") {
+      personalWorkspaces.push(ws);
     } else {
-      inactiveTaxRules.push(rule);
+      businessWorkspaces.push(ws);
     }
   }
 
-  const hasTaxRules = taxRules.length > 0;
-  const hasFilteredTaxRules = activeTaxRules.length + inactiveTaxRules.length > 0;
+  const hasWorkspaces = workspaces.length > 0;
+  const hasFilteredWorkspaces = personalWorkspaces.length + businessWorkspaces.length > 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Reglas de Impuestos</h1>
+          <h1 className="text-2xl font-bold">Workspaces</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configurá reglas para calcular impuestos automáticamente
+            Gestioná tus espacios de trabajo personales y de negocio
           </p>
         </div>
         <button
@@ -121,18 +109,18 @@ export function TaxRulesClient({
           )}
         >
           <Plus className="w-4 h-4" />
-          Nueva regla
+          Nuevo workspace
         </button>
       </div>
 
-      {/* Filters */}
-      {hasTaxRules && (
+      {/* Search */}
+      {hasWorkspaces && workspaces.length > 2 && (
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar reglas..."
+              placeholder="Buscar workspaces..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={cn(
@@ -146,15 +134,15 @@ export function TaxRulesClient({
       )}
 
       {/* Content */}
-      {!hasTaxRules ? (
+      {!hasWorkspaces ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <Calculator className="w-8 h-8 text-muted-foreground" />
+            <Building2 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-semibold mb-2">Sin reglas de impuestos</h2>
+          <h2 className="text-lg font-semibold mb-2">Sin workspaces</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Creá reglas de impuestos para calcular automáticamente 
-            en tus transacciones.
+            Creá un workspace para organizar tus finanzas personales o de
+            negocio.
           </p>
           <button
             onClick={handleCreate}
@@ -165,51 +153,49 @@ export function TaxRulesClient({
             )}
           >
             <Plus className="w-4 h-4" />
-            Crear primera regla
+            Crear primer workspace
           </button>
         </div>
-      ) : !hasFilteredTaxRules ? (
+      ) : !hasFilteredWorkspaces ? (
         <div className="text-center py-12">
           <p className="text-sm text-muted-foreground">
-            No se encontraron reglas con los filtros aplicados
+            No se encontraron workspaces con ese nombre
           </p>
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Active tax rules */}
-          {activeTaxRules.length > 0 && (
+          {/* Personal workspaces */}
+          {personalWorkspaces.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-                Activas
+                Personales
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeTaxRules.map((taxRule) => (
-                  <TaxRuleCard
-                    key={taxRule.id}
-                    taxRule={taxRule}
+                {personalWorkspaces.map((workspace) => (
+                  <WorkspaceCard
+                    key={workspace.id}
+                    workspace={workspace}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onToggle={handleToggle}
                   />
                 ))}
               </div>
             </section>
           )}
 
-          {/* Inactive tax rules */}
-          {inactiveTaxRules.length > 0 && (
+          {/* Business workspaces */}
+          {businessWorkspaces.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-                Inactivas
+                Negocio
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {inactiveTaxRules.map((taxRule) => (
-                  <TaxRuleCard
-                    key={taxRule.id}
-                    taxRule={taxRule}
+                {businessWorkspaces.map((workspace) => (
+                  <WorkspaceCard
+                    key={workspace.id}
+                    workspace={workspace}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onToggle={handleToggle}
                   />
                 ))}
               </div>
@@ -220,11 +206,10 @@ export function TaxRulesClient({
 
       {/* Sheet — lazy loaded */}
       {sheetOpen && (
-        <TaxRuleSheet
+        <WorkspaceSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
-          taxRule={editingTaxRule}
-          workspaceId={workspaceId}
+          workspace={editingWorkspace}
         />
       )}
 
@@ -232,10 +217,10 @@ export function TaxRulesClient({
       {deleteModalOpen && (
         <DeleteConfirmModal
           open={deleteModalOpen}
-          taxRule={selectedTaxRule}
+          workspace={selectedWorkspace}
           onClose={() => {
             setDeleteModalOpen(false);
-            setSelectedTaxRule(null);
+            setSelectedWorkspace(null);
           }}
           onConfirm={handleConfirmDelete}
           isDeleting={isDeleting}

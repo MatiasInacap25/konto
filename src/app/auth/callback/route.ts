@@ -49,11 +49,27 @@ export async function GET(request: Request) {
                 },
               },
             },
+            include: {
+              workspaces: { select: { id: true } },
+            },
           });
+
+          // Create OWNER membership
+          const personalWs = newUser.workspaces[0];
+          if (personalWs) {
+            await prisma.workspaceMember.create({
+              data: {
+                userId: newUser.id,
+                workspaceId: personalWs.id,
+                role: "OWNER",
+              },
+            });
+          }
+
           console.log("[Auth Callback] Created user with Personal workspace:", newUser.id);
         } else if (existingUser.workspaces.length === 0) {
           // Usuario existe pero no tiene workspaces - crear el Personal
-          await prisma.workspace.create({
+          const ws = await prisma.workspace.create({
             data: {
               name: "Personal",
               type: "PERSONAL",
@@ -61,6 +77,16 @@ export async function GET(request: Request) {
               userId: existingUser.id,
             },
           });
+
+          // Create OWNER membership
+          await prisma.workspaceMember.create({
+            data: {
+              userId: existingUser.id,
+              workspaceId: ws.id,
+              role: "OWNER",
+            },
+          });
+
           console.log("[Auth Callback] Created Personal workspace for existing user");
         }
       } catch (dbError) {

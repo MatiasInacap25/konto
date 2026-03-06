@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { RecurringClient, RecurringsSkeleton } from "@/components/recurrings";
+import { RecurringClient } from "@/components/recurrings/recurring-client";
+import { RecurringsSkeleton } from "@/components/recurrings/recurrings-skeleton";
 import { getRecurrings } from "@/actions/recurrings";
 
 type RecurringsPageProps = {
@@ -10,7 +11,7 @@ type RecurringsPageProps = {
 };
 
 async function RecurringsContent({ workspaceId }: { workspaceId: string }) {
-  const [recurrings, accounts, categories] = await Promise.all([
+  const [recurrings, accounts, categories, workspace] = await Promise.all([
     getRecurrings(workspaceId),
     prisma.account.findMany({
       where: { workspaceId, archivedAt: null },
@@ -22,12 +23,11 @@ async function RecurringsContent({ workspaceId }: { workspaceId: string }) {
       select: { id: true, name: true, icon: true, type: true },
       orderBy: { name: "asc" },
     }),
+    prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { currency: true },
+    }),
   ]);
-
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { currency: true },
-  });
 
   // Transform categories to the format expected by the component
   const categoryOptions = categories.map((cat) => ({
@@ -55,12 +55,11 @@ async function RecurringsContent({ workspaceId }: { workspaceId: string }) {
 }
 
 export default async function RecurringsPage({ searchParams }: RecurringsPageProps) {
-  const user = await getUser();
+  const [user, params] = await Promise.all([getUser(), searchParams]);
   if (!user) {
     redirect("/login");
   }
 
-  const params = await searchParams;
   let workspaceId = params.workspace;
 
   // Get workspace - use first one if not specified
@@ -78,17 +77,7 @@ export default async function RecurringsPage({ searchParams }: RecurringsPagePro
     workspaceId = firstWorkspace.id;
   }
 
-  // Validate workspace belongs to user
-  const workspace = await prisma.workspace.findFirst({
-    where: {
-      id: workspaceId,
-      userId: user.id,
-    },
-  });
-
-  if (!workspace) {
-    redirect("/dashboard");
-  }
+  // Ownership validated inside getRecurrings server action — no redundant query needed
 
   return (
     <Suspense fallback={<RecurringsSkeleton />}>

@@ -24,6 +24,34 @@ export const getUserWorkspaces = cache(async (userId: string) => {
 });
 
 /**
+ * Get user's workspaces with entity counts for the workspaces page
+ */
+export const getUserWorkspacesWithCounts = cache(async (userId: string) => {
+  return prisma.workspace.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      currency: true,
+      createdAt: true,
+      _count: {
+        select: {
+          accounts: true,
+          members: true,
+          Recurrings: true,
+          taxRules: true,
+        },
+      },
+    },
+    orderBy: [
+      { type: "asc" }, // PERSONAL first
+      { createdAt: "asc" },
+    ],
+  });
+});
+
+/**
  * Get workspace by ID or default personal workspace
  */
 export const getWorkspace = cache(async (userId: string, workspaceId?: string) => {

@@ -62,12 +62,21 @@ export default async function ProtectedLayout({
 
   // Si el usuario existe pero no tiene workspace Personal (caso edge), lo creamos
   if (dbUser && dbUser.workspaces.length === 0) {
-    await prisma.workspace.create({
+    const ws = await prisma.workspace.create({
       data: {
         userId: dbUser.id,
         name: "Personal",
         type: "PERSONAL",
         currency: "CLP",
+      },
+    });
+
+    // Create OWNER membership
+    await prisma.workspaceMember.create({
+      data: {
+        userId: dbUser.id,
+        workspaceId: ws.id,
+        role: "OWNER",
       },
     });
   }

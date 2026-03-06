@@ -1,42 +1,55 @@
-import { Receipt } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
 import { PlanGate } from "@/components/shared/plan-gate";
+import { ReceiptsClient } from "@/components/receipts/receipts-client";
+import { ReceiptsSkeleton } from "@/components/receipts/receipts-skeleton";
+import { getReceiptsPageData } from "@/lib/queries/receipts";
 
-export default function ReceiptsPage() {
+type ReceiptsPageProps = {
+  searchParams: Promise<{
+    workspace?: string;
+  }>;
+};
+
+async function ReceiptsContent({
+  userId,
+  workspaceId,
+}: {
+  userId: string;
+  workspaceId?: string;
+}) {
+  const data = await getReceiptsPageData(userId, workspaceId);
+
+  if (!data) {
+    redirect("/dashboard");
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Recibos</h1>
-        <p className="text-muted-foreground mt-1">
-          Guardá y organizá tus comprobantes de pago.
-        </p>
-      </div>
+    <ReceiptsClient
+      receipts={data.receipts}
+      accounts={data.accounts}
+      categories={data.categories}
+      workspaceId={data.workspace.id}
+      workspaceType={data.workspace.type as "PERSONAL" | "BUSINESS"}
+      currency={data.workspace.currency}
+    />
+  );
+}
 
-      <PlanGate requiredPlan="PRO" behavior="blur">
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Próximamente
-            </CardTitle>
-            <CardDescription>
-              Esta sección está en desarrollo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Acá vas a poder subir fotos de recibos, extraer datos con IA, 
-              y asociarlos a transacciones automáticamente.
-            </p>
-          </CardContent>
-        </Card>
-      </PlanGate>
-    </div>
+export default async function ReceiptsPage({
+  searchParams,
+}: ReceiptsPageProps) {
+  const [user, params] = await Promise.all([getUser(), searchParams]);
+  if (!user) {
+    redirect("/login");
+  }
+
+  return (
+    <PlanGate requiredPlan="PRO" behavior="blur">
+      <Suspense key={params.workspace} fallback={<ReceiptsSkeleton />}>
+        <ReceiptsContent userId={user.id} workspaceId={params.workspace} />
+      </Suspense>
+    </PlanGate>
   );
 }
