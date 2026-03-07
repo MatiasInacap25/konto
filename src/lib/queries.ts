@@ -660,10 +660,7 @@ export const getWorkspaceTransactionData = cache(
       prisma.account.findMany({
         where: {
           workspaceId: workspace.id,
-          OR: [
-            { archivedAt: null },
-            { isSystem: true }, // Include system accounts for transaction display
-          ],
+          archivedAt: null, // Only non-archived accounts (includes system accounts)
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },

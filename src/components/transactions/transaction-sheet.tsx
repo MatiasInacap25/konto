@@ -294,56 +294,55 @@ export function TransactionSheet({
               )}
             </div>
 
-            {/* Cuenta y Categoría — grid compacto */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Cuenta</Label>
-                <Select
-                  value={watch("accountId")}
-                  onValueChange={(value) => setValue("accountId", value)}
+            {/* Cuenta */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Cuenta</Label>
+              <Select
+                value={watch("accountId")}
+                onValueChange={(value) => setValue("accountId", value)}
+              >
+                <SelectTrigger 
+                  className={cn(
+                    "h-9",
+                    errors.accountId && "border-destructive focus:ring-destructive"
+                  )}
                 >
-                  <SelectTrigger 
-                    className={cn(
-                      "h-9",
-                      errors.accountId && "border-destructive focus:ring-destructive"
-                    )}
-                  >
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.accountId && (
-                  <p className="text-xs text-destructive">{errors.accountId.message}</p>
-                )}
-              </div>
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.accountId && (
+                <p className="text-xs text-destructive">{errors.accountId.message}</p>
+              )}
+            </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Categoría</Label>
-                <Select
-                  value={watch("categoryId") || "__none__"}
-                  onValueChange={(value) =>
-                    setValue("categoryId", value === "__none__" ? "" : value)
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin categoría</SelectItem>
-                    {filteredCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Categoría */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Categoría</Label>
+              <Select
+                value={watch("categoryId") || "__none__"}
+                onValueChange={(value) =>
+                  setValue("categoryId", value === "__none__" ? "" : value)
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin categoría</SelectItem>
+                  {filteredCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Impuesto - aplica a expenses e incomes */}
