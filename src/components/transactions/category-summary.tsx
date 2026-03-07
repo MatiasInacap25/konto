@@ -38,6 +38,9 @@ export function CategorySummary({
 
     // Initialize with all categories that have transactions
     transactions.forEach((tx) => {
+      // Skip TRANSFER transactions (they don't belong to categories)
+      if (tx.type === "TRANSFER") return;
+      
       const categoryId = tx.categoryId || "uncategorized";
       
       if (!stats.has(categoryId)) {

@@ -15,10 +15,12 @@ import {
 } from "@/components/ui/card";
 import { getUser } from "@/lib/auth";
 import { getWorkspaceWithDashboardData } from "@/lib/queries";
+import { getSavingsSummary } from "@/lib/queries/savings";
 import { RecentTransactions } from "./recent-transactions";
 import { UpcomingRecurrings } from "./upcoming-recurrings";
 import { TrendChart } from "./trend-chart";
 import { InsightsPanel } from "./insights-panel";
+import { SavingsCard } from "./savings-card";
 
 type DashboardContentProps = {
   workspaceId?: string;
@@ -32,7 +34,10 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
   }
 
   // Single optimized query with parallel fetching
-  const data = await getWorkspaceWithDashboardData(user.id, workspaceId);
+  const [data, savingsSummary] = await Promise.all([
+    getWorkspaceWithDashboardData(user.id, workspaceId),
+    getSavingsSummary(workspaceId || ""),
+  ]);
 
   if (!data) {
     return (
@@ -128,6 +133,17 @@ export async function DashboardContent({ workspaceId }: DashboardContentProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Savings summary card */}
+      {(savingsSummary.totalSaved > 0 || savingsSummary.activeGoalsCount > 0) && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <SavingsCard
+            summary={savingsSummary}
+            workspaceId={workspace.id}
+            currency={currency}
+          />
+        </div>
+      )}
 
       {/* Empty state or content */}
       {!hasData ? (

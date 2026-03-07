@@ -1,55 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
-import type { TransactionType } from "@prisma/client";
+import type { 
+  CategoryReport, 
+  MonthlyComparison, 
+  ReportTransaction, 
+  MonthlyReport, 
+  AvailableMonth 
+} from "@/types/reports";
 
-export type CategoryReport = {
-  id: string;
-  name: string;
-  icon: string | null;
-  type: TransactionType;
-  amount: number;
-  percentage: number;
-  transactionCount: number;
-};
-
-export type MonthlyComparison = {
-  incomeDelta: number;
-  expenseDelta: number;
-  incomeDeltaPercent: number;
-  expenseDeltaPercent: number;
-};
-
-export type ReportTransaction = {
-  id: string;
-  amount: number;
-  date: Date;
-  description: string | null;
-  type: TransactionType;
-  categoryId: string | null;
-  categoryName: string | null;
-  categoryIcon: string | null;
-  accountName: string;
-};
-
-export type MonthlyReport = {
-  year: number;
-  month: number;
-  monthName: string;
-  totalIncome: number;
-  totalExpenses: number;
-  balance: number;
-  transactionCount: number;
-  categories: CategoryReport[];
-  transactions: ReportTransaction[];
-  comparison: MonthlyComparison | null;
-};
-
-export type AvailableMonth = {
-  year: number;
-  month: number;
-  monthName: string;
-  transactionCount: number;
-};
+// Re-export types for convenience
+export type { CategoryReport, MonthlyComparison, ReportTransaction, MonthlyReport, AvailableMonth };
 
 /**
  * Get available months for the selector (months with transactions)
@@ -184,7 +144,7 @@ export async function getMonthlyReport(
     },
   });
 
-  // Calculate totals
+  // Calculate totals (exclude TRANSFER transactions)
   let totalIncome = 0;
   let totalExpenses = 0;
 
@@ -192,12 +152,13 @@ export async function getMonthlyReport(
     const amount = Number(tx.amount);
     if (tx.type === "INCOME") {
       totalIncome += amount;
-    } else {
+    } else if (tx.type === "EXPENSE") {
       totalExpenses += amount;
     }
+    // Skip TRANSFER - doesn't affect income/expense totals
   }
 
-  // Calculate previous month totals
+  // Calculate previous month totals (exclude TRANSFER)
   let prevIncome = 0;
   let prevExpenses = 0;
 
@@ -205,9 +166,10 @@ export async function getMonthlyReport(
     const amount = Number(tx.amount);
     if (tx.type === "INCOME") {
       prevIncome += amount;
-    } else {
+    } else if (tx.type === "EXPENSE") {
       prevExpenses += amount;
     }
+    // Skip TRANSFER
   }
 
   // Calculate deltas
@@ -216,14 +178,18 @@ export async function getMonthlyReport(
   const incomeDeltaPercent = prevIncome > 0 ? (incomeDelta / prevIncome) * 100 : 0;
   const expenseDeltaPercent = prevExpenses > 0 ? (expenseDelta / prevExpenses) * 100 : 0;
 
-  // Group by category
+  // Group by category (skip TRANSFER transactions)
   const categoryMap = new Map<string, CategoryReport>();
 
   for (const tx of transactions) {
+    // Skip TRANSFER transactions (they don't belong to categories for reporting)
+    if (tx.type === "TRANSFER") continue;
+    
     const categoryId = tx.categoryId || "uncategorized";
     const categoryName = tx.category?.name || "Sin categoría";
     const categoryIcon = tx.category?.icon || "📋";
-    const categoryType = tx.category?.type || "EXPENSE";
+    // Type assertion: we already filtered out TRANSFER above
+    const categoryType = (tx.category?.type || "EXPENSE") as "INCOME" | "EXPENSE";
     const amount = Number(tx.amount);
 
     if (!categoryMap.has(categoryId)) {

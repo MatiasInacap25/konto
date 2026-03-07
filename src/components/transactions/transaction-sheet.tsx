@@ -119,7 +119,8 @@ export function TransactionSheet({
         reset({
           amount: String(transaction.amount),
           description: transaction.description || "",
-          type: transaction.type,
+          // Manual transactions can only be INCOME or EXPENSE (TRANSFER is system-generated)
+          type: transaction.type as "INCOME" | "EXPENSE",
           scope: transaction.scope,
           date: new Date(transaction.date),
           accountId: transaction.accountId,

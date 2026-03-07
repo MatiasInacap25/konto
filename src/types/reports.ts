@@ -1,8 +1,10 @@
+import type { TransactionType } from "@prisma/client";
+
 export type CategoryReport = {
   id: string;
   name: string;
   icon: string | null;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE"; // Categories are only for INCOME/EXPENSE
   amount: number;
   percentage: number;
   transactionCount: number;
@@ -20,7 +22,7 @@ export type ReportTransaction = {
   amount: number;
   date: Date;
   description: string | null;
-  type: "INCOME" | "EXPENSE";
+  type: TransactionType; // Allow all types but filter TRANSFER in queries
   categoryId: string | null;
   categoryName: string | null;
   categoryIcon: string | null;

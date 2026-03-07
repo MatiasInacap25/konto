@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  PiggyBank,
+  Target,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 
@@ -50,6 +52,16 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cuentas",
     href: "/accounts",
     icon: Wallet,
+  },
+  {
+    label: "Ahorro",
+    href: "/savings",
+    icon: PiggyBank,
+  },
+  {
+    label: "Presupuestos",
+    href: "/budgets",
+    icon: Target,
   },
   {
     label: "Reportes",

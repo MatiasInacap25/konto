@@ -168,6 +168,19 @@ export function TransactionFilters({
         >
           Gastos
         </button>
+        <button
+          onClick={() =>
+            updateFilter("type", currentType === "TRANSFER" ? null : "TRANSFER")
+          }
+          className={cn(
+            "px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+            currentType === "TRANSFER"
+              ? "bg-background text-blue-600 dark:text-blue-400 shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Transferencias
+        </button>
       </div>
 
       {/* Filtros secundarios */}

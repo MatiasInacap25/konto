@@ -5,13 +5,14 @@ import { AlertTriangle, Calendar, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { registerRecurringPayment } from "@/actions/recurrings";
+import type { TransactionType } from "@prisma/client";
 
 type Recurring = {
   id: string;
   name: string;
   amount: number;
   nextPayment: Date;
-  type: "INCOME" | "EXPENSE";
+  type: TransactionType; // Allow all types but we'll handle them
   frequency: string;
 };
 

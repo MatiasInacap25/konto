@@ -47,7 +47,8 @@ export function CategorySheet({ open, onOpenChange, category }: CategorySheetPro
       reset({
         name: category.name,
         icon: category.icon || "",
-        type: category.type,
+        // Categories can only be INCOME or EXPENSE (TRANSFER doesn't have categories)
+        type: category.type as "INCOME" | "EXPENSE",
       });
     } else {
       reset({

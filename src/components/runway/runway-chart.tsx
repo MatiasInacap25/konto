@@ -48,8 +48,8 @@ export function RunwayChart({ data, currency }: RunwayChartProps) {
     <div className="bg-card border rounded-xl p-6">
       <h3 className="font-semibold mb-4">Proyección de balance</h3>
 
-      <div className="h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[300px] w-full min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <AreaChart
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

@@ -24,6 +24,7 @@ enum Plan {
 enum TransactionType {
   INCOME
   EXPENSE
+  TRANSFER  // Transferencias internas entre cuentas/metas
 }
 
 enum WorkspaceType {
@@ -59,6 +60,12 @@ enum ReceiptStatus {
   EXTRACTED
   COMPLETED
   FAILED
+}
+
+enum GoalStatus {
+  ACTIVE      // En progreso
+  COMPLETED   // Meta alcanzada (balance >= targetAmount)
+  CANCELLED   // Cancelado por el usuario
 }
 
 // --------------------------------------
@@ -98,6 +105,8 @@ model Workspace {
   taxRules      TaxRule[]
   members       WorkspaceMember[]
   receipts      Receipt[]
+  savingsGoals  SavingsGoal[]
+  budgets       Budget[]
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -117,6 +126,7 @@ model Account {
 
   transactions  Transaction[]
   recurrings    Recurring[]
+  savingsGoal   SavingsGoal?  // Relación 1:1 opcional (si es cuenta de sistema para meta)
 
   // Index para filtrar rápido activas vs archivadas
   @@index([workspaceId, archivedAt])
@@ -135,6 +145,7 @@ model Category {
 
   transactions  Transaction[]
   Recurrings Recurring[]
+  budgetLimits  BudgetCategoryLimit[]
 
   // Unicidad: En un mismo workspace no puede haber dos categorías iguales.
   // Pero permite duplicados si workspaceId es diferente.
@@ -244,4 +255,66 @@ model Receipt {
   updatedAt     DateTime      @updatedAt
 
   @@index([workspaceId, status])
+}
+
+model SavingsGoal {
+  id            String      @id @default(cuid())
+  name          String
+  emoji         String?
+  description   String?
+  targetAmount  Decimal     @db.Decimal(15, 2)
+  deadline      DateTime?
+  status        GoalStatus  @default(ACTIVE)
+  
+  // Relación 1:1 con Account (system account)
+  accountId     String      @unique
+  account       Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  workspaceId   String
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  completedAt   DateTime?
+
+  @@index([workspaceId, status])
+}
+
+model Budget {
+  id            String                @id @default(cuid())
+  name          String                // "Presupuesto Febrero", "Vacaciones Verano"
+  totalAmount   Decimal               @db.Decimal(15, 2) // Límite total obligatorio
+  
+  // Período
+  startDate     DateTime              // Inicio del período
+  endDate       DateTime              // Fin del período
+  
+  // Relaciones
+  workspaceId   String
+  workspace     Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  categoryLimits BudgetCategoryLimit[]
+  
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  
+  @@index([workspaceId])
+  @@index([startDate, endDate]) // Para queries de períodos activos
+}
+
+model BudgetCategoryLimit {
+  id          String   @id @default(cuid())
+  amount      Decimal  @db.Decimal(15, 2) // Límite para esta categoría
+  
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([budgetId, categoryId]) // Una categoría solo puede tener un límite por presupuesto
+  @@index([budgetId])
 }

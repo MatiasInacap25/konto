@@ -122,7 +122,7 @@ export function TransactionsClient({
     });
   }, [transactions, searchQuery]);
 
-  // Calculate totals from filtered transactions
+  // Calculate totals from filtered transactions (exclude TRANSFER)
   const totals = useMemo(() => {
     const income = filteredTransactions
       .filter((tx) => tx.type === "INCOME")

@@ -48,6 +48,7 @@ type ReceiptConfirmFormProps = {
   categories: CategoryOption[];
   workspaceId: string;
   workspaceType: "PERSONAL" | "BUSINESS";
+  defaultAccountId: string | null;
 };
 
 function formatDate(date: Date): string {
@@ -66,6 +67,7 @@ export function ReceiptConfirmForm({
   categories,
   workspaceId,
   workspaceType,
+  defaultAccountId,
 }: ReceiptConfirmFormProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -122,12 +124,12 @@ export function ReceiptConfirmForm({
           extracted?.merchant ||
           "",
         date: extracted?.date ? new Date(extracted.date) : new Date(),
-        accountId: accounts[0]?.id || "",
+        accountId: defaultAccountId || accounts[0]?.id || "",
         categoryId: matchedCategoryId,
         scope: workspaceType === "PERSONAL" ? "PERSONAL" : "BUSINESS",
       });
     }
-  }, [open, receipt, reset, accounts, workspaceType, expenseCategories]);
+  }, [open, receipt, reset, accounts, workspaceType, expenseCategories, defaultAccountId]);
 
   const onSubmit = (data: ConfirmReceiptFormData) => {
     startTransition(async () => {

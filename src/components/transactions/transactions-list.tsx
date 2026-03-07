@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Receipt, Clock, Percent } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Receipt, Clock, Percent, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +146,9 @@ export function TransactionsList({
             .filter((tx) => tx.type === "EXPENSE")
             .reduce((sum, tx) => sum + tx.amount, 0);
           const dayNet = dayIncome - dayExpense;
+          
+          // Count transfers separately (don't affect net)
+          const dayTransfers = dayTransactions.filter((tx) => tx.type === "TRANSFER").length;
 
           return (
             <section key={dateKey}>
@@ -204,7 +207,9 @@ export function TransactionsList({
                         "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-full",
                         tx.type === "INCOME"
                           ? "before:bg-emerald-500 dark:before:bg-emerald-400"
-                          : "before:bg-border",
+                          : tx.type === "TRANSFER"
+                            ? "before:bg-blue-500 dark:before:bg-blue-400"
+                            : "before:bg-border",
                         // Opacidad reducida para transacciones futuras
                         isFuture && "opacity-60"
                       )}
@@ -215,6 +220,15 @@ export function TransactionsList({
                           <p className="text-sm font-medium text-foreground truncate">
                             {tx.description || tx.category?.name || "Sin descripción"}
                           </p>
+                          {tx.type === "TRANSFER" && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-[10px] px-1.5 py-0 h-4 font-normal border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 flex-shrink-0 gap-0.5"
+                            >
+                              <ArrowLeftRight className="h-2.5 w-2.5" />
+                              Transferencia
+                            </Badge>
+                          )}
                           {isFuture && (
                             <Badge 
                               variant="outline" 
@@ -250,10 +264,12 @@ export function TransactionsList({
                           "text-sm font-semibold tabular-nums whitespace-nowrap font-mono tracking-tight",
                           tx.type === "INCOME"
                             ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-foreground"
+                            : tx.type === "TRANSFER"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-foreground"
                         )}
                       >
-                        {tx.type === "INCOME" ? "+" : "−"}
+                        {tx.type === "INCOME" ? "+" : tx.type === "TRANSFER" ? "" : "−"}
                         {formatCurrency(tx.amount)}
                       </span>
 

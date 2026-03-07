@@ -8,3 +8,5 @@ export { WorkspaceSelector } from "./workspace-selector";
 export { TrendChart } from "./trend-chart";
 export { InsightsPanel } from "./insights-panel";
 export { InsightCard } from "./insight-card";
+export { SavingsCard } from "./savings-card";
+

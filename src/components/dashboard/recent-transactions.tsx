@@ -1,4 +1,4 @@
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Transaction = {
@@ -6,7 +6,7 @@ type Transaction = {
   amount: number;
   date: Date;
   description: string | null;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
   category: {
     name: string;
     icon: string | null;
@@ -58,10 +58,15 @@ export function RecentTransactions({ transactions, currency }: RecentTransaction
                 "w-8 h-8 rounded-full flex items-center justify-center text-sm",
                 tx.type === "INCOME"
                   ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
+                  : tx.type === "TRANSFER"
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-red-100 text-red-600"
               )}
             >
-              {tx.category?.icon || (tx.type === "INCOME" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />)}
+              {tx.category?.icon || 
+                (tx.type === "INCOME" ? <ArrowUpRight className="w-4 h-4" /> : 
+                 tx.type === "TRANSFER" ? <ArrowLeftRight className="w-4 h-4" /> : 
+                 <ArrowDownRight className="w-4 h-4" />)}
             </div>
             <div>
               <p className="text-sm font-medium">
@@ -75,10 +80,12 @@ export function RecentTransactions({ transactions, currency }: RecentTransaction
           <span
             className={cn(
               "text-sm font-semibold",
-              tx.type === "INCOME" ? "text-green-600" : "text-red-600"
+              tx.type === "INCOME" ? "text-green-600" : 
+              tx.type === "TRANSFER" ? "text-blue-600" : 
+              "text-red-600"
             )}
           >
-            {tx.type === "INCOME" ? "+" : "-"}
+            {tx.type === "INCOME" ? "+" : tx.type === "TRANSFER" ? "" : "-"}
             {formatCurrency(Number(tx.amount))}
           </span>
         </div>

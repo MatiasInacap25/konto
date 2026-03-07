@@ -87,10 +87,12 @@ export function TransactionList({
               "text-sm font-semibold tabular-nums flex-shrink-0",
               tx.type === "INCOME"
                 ? "text-emerald-600"
-                : "text-foreground"
+                : tx.type === "TRANSFER"
+                  ? "text-blue-600"
+                  : "text-foreground"
             )}
           >
-            {tx.type === "INCOME" ? "+" : "−"}
+            {tx.type === "INCOME" ? "+" : tx.type === "TRANSFER" ? "" : "−"}
             {formatCurrency(tx.amount)}
           </span>
         </div>

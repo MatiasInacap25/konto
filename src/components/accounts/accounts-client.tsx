@@ -99,7 +99,7 @@ export function AccountsClient({
 
       {/* Accounts list */}
       <AccountsList
-        accounts={accounts}
+        accounts={accounts.filter(acc => !acc.isSystem)} // Filter out system accounts (savings goals)
         currency={currency}
         workspaceId={workspaceId}
         onEdit={handleEdit}

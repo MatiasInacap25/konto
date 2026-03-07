@@ -95,8 +95,8 @@ export function CategoryPieChart({
   }
 
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-80 min-h-80">
+      <ResponsiveContainer width="100%" height="100%" minHeight={320}>
         <PieChart>
           <Pie
             data={chartData}
