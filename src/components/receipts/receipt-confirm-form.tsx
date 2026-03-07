@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useTransition } from "react";
+import { useEffect, useMemo, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -38,7 +38,7 @@ import {
 } from "@/lib/validations/receipt";
 import { confirmReceipt } from "@/actions/receipts";
 import type { ReceiptItem } from "@/lib/queries/receipts";
-import type { AccountOption, CategoryOption } from "@/types/transactions";
+import type { AccountOption, CategoryOption, TaxRuleOption } from "@/types/transactions";
 
 type ReceiptConfirmFormProps = {
   open: boolean;
@@ -46,6 +46,7 @@ type ReceiptConfirmFormProps = {
   receipt: ReceiptItem | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  taxRules: TaxRuleOption[];
   workspaceId: string;
   workspaceType: "PERSONAL" | "BUSINESS";
   defaultAccountId: string | null;
@@ -65,11 +66,13 @@ export function ReceiptConfirmForm({
   receipt,
   accounts,
   categories,
+  taxRules,
   workspaceId,
   workspaceType,
   defaultAccountId,
 }: ReceiptConfirmFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [selectedTaxRuleId, setSelectedTaxRuleId] = useState<string>("");
 
   // Filter only expense categories (receipts are always expenses)
   // Memoize to prevent unstable ref in useEffect dependency array
@@ -94,6 +97,7 @@ export function ReceiptConfirmForm({
       date: new Date(),
       accountId: "",
       categoryId: "",
+      taxRuleId: "",
       scope: workspaceType === "PERSONAL" ? "PERSONAL" : "BUSINESS",
     },
   });
@@ -126,14 +130,19 @@ export function ReceiptConfirmForm({
         date: extracted?.date ? new Date(extracted.date) : new Date(),
         accountId: defaultAccountId || accounts[0]?.id || "",
         categoryId: matchedCategoryId,
+        taxRuleId: "",
         scope: workspaceType === "PERSONAL" ? "PERSONAL" : "BUSINESS",
       });
+      setSelectedTaxRuleId("");
     }
   }, [open, receipt, reset, accounts, workspaceType, expenseCategories, defaultAccountId]);
 
   const onSubmit = (data: ConfirmReceiptFormData) => {
     startTransition(async () => {
-      const result = await confirmReceipt(data, workspaceId);
+      const result = await confirmReceipt({
+        ...data,
+        taxRuleId: selectedTaxRuleId || undefined,
+      }, workspaceId);
       if (result.success) {
         toast.success("Transacción creada desde recibo");
         onOpenChange(false);
@@ -144,6 +153,20 @@ export function ReceiptConfirmForm({
   };
 
   const selectedDate = watch("date");
+  const selectedAmount = watch("amount");
+
+  // Calcular impuesto
+  const calculatedTax = useMemo(() => {
+    const rule = taxRules.find(r => r.id === selectedTaxRuleId);
+    if (!rule || !selectedAmount) return null;
+    const amount = parseFloat(selectedAmount.replace(/[^\d.-]/g, ""));
+    if (isNaN(amount) || amount <= 0) return null;
+    return {
+      amount: amount * (rule.percentage / 100),
+      rate: rule.percentage,
+      ruleName: rule.name,
+    };
+  }, [selectedTaxRuleId, selectedAmount, taxRules]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -285,6 +308,53 @@ export function ReceiptConfirmForm({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tax Rule */}
+          {taxRules.length > 0 && (
+            <div className="space-y-2">
+              <Label>
+                Impuesto <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+              </Label>
+              <Select
+                value={selectedTaxRuleId || "__none__"}
+                onValueChange={(value) =>
+                  setSelectedTaxRuleId(value === "__none__" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin impuesto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin impuesto</SelectItem>
+                  {taxRules.filter(r => r.isActive !== false).map((rule) => (
+                    <SelectItem key={rule.id} value={rule.id}>
+                      {rule.name} ({rule.percentage}%)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Mostrar cálculo de impuesto */}
+              {calculatedTax && (
+                <div className="mt-2 p-2 bg-muted/50 rounded-md text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">${parseFloat(selectedAmount.replace(/[^\d.-]/g, "")).toLocaleString("es-CL")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{calculatedTax.ruleName} ({calculatedTax.rate}%):</span>
+                    <span className="font-medium text-destructive">
+                      +${calculatedTax.amount.toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-semibold border-t pt-1">
+                    <span>Total:</span>
+                    <span>${(parseFloat(selectedAmount.replace(/[^\d.-]/g, "")) + calculatedTax.amount).toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Scope */}
           <div className="space-y-2">

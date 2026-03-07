@@ -401,6 +401,21 @@ export async function confirmReceipt(
 
     const amount = parseReceiptAmount(validInput.amount);
 
+    // Calculate tax if tax rule is provided
+    let taxRule = null;
+    let taxAmount: number | null = null;
+    let taxRate: number | null = null;
+    
+    if (validInput.taxRuleId) {
+      taxRule = await prisma.taxRule.findFirst({
+        where: { id: validInput.taxRuleId, workspaceId },
+      });
+      if (taxRule) {
+        taxAmount = amount * (Number(taxRule.percentage) / 100);
+        taxRate = Number(taxRule.percentage);
+      }
+    }
+
     // Create transaction + update receipt + update account balance in a DB transaction
     const result = await prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
@@ -412,17 +427,20 @@ export async function confirmReceipt(
           date: validInput.date,
           accountId: validInput.accountId,
           categoryId: validInput.categoryId || undefined,
+          taxAmount: taxAmount,
+          taxRate: taxRate,
           workspaceId,
           receiptUrl: receipt.fileUrl,
         },
       });
 
-      // Update account balance (expense = negative)
+      // Update account balance (expense = negative, include tax if present)
+      const totalToDeduct = taxAmount ? amount + taxAmount : amount;
       await tx.account.update({
         where: { id: validInput.accountId },
         data: {
           balance: {
-            decrement: amount,
+            decrement: totalToDeduct,
           },
         },
       });

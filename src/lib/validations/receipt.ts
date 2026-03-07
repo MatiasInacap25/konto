@@ -59,6 +59,7 @@ export const confirmReceiptSchema = z.object({
   date: z.date({ message: "Seleccioná la fecha" }),
   accountId: z.string().min(1, "Seleccioná una cuenta"),
   categoryId: z.string().optional(),
+  taxRuleId: z.string().optional(),
   scope: z.enum(["PERSONAL", "BUSINESS", "MIXED"], {
     message: "Seleccioná el alcance",
   }),

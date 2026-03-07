@@ -30,6 +30,7 @@ async function ReceiptsContent({
       receipts={data.receipts}
       accounts={data.accounts}
       categories={data.categories}
+      taxRules={data.taxRules.map(t => ({ ...t, percentage: Number(t.percentage) }))}
       workspaceId={data.workspace.id}
       workspaceType={data.workspace.type as "PERSONAL" | "BUSINESS"}
       currency={data.workspace.currency}

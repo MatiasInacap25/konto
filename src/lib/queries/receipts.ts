@@ -68,7 +68,7 @@ export const getReceiptsPageData = cache(
     const workspace = await getWorkspace(userId, workspaceId);
     if (!workspace) return null;
 
-    const [receipts, accounts, categories] = await Promise.all([
+    const [receipts, accounts, categories, taxRules] = await Promise.all([
       prisma.receipt.findMany({
         where: {
           workspaceId: workspace.id,
@@ -90,7 +90,7 @@ export const getReceiptsPageData = cache(
       prisma.account.findMany({
         where: {
           workspaceId: workspace.id,
-          OR: [{ archivedAt: null }, { isSystem: true }],
+          archivedAt: null,
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
@@ -100,6 +100,11 @@ export const getReceiptsPageData = cache(
           OR: [{ userId }, { userId: null }],
         },
         select: { id: true, name: true, type: true, icon: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.taxRule.findMany({
+        where: { workspaceId: workspace.id },
+        select: { id: true, name: true, percentage: true, isActive: true },
         orderBy: { name: "asc" },
       }),
     ]);
@@ -112,6 +117,7 @@ export const getReceiptsPageData = cache(
       })) as ReceiptItem[],
       accounts: accounts as AccountOption[],
       categories: categories as CategoryOption[],
+      taxRules,
     };
   }
 );

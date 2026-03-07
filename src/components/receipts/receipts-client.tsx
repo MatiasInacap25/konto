@@ -31,7 +31,7 @@ import {
 import { validateReceiptFile } from "@/lib/validations/receipt";
 import type { ExtractedReceiptData } from "@/lib/validations/receipt";
 import type { ReceiptItem } from "@/lib/queries/receipts";
-import type { AccountOption, CategoryOption } from "@/types/transactions";
+import type { AccountOption, CategoryOption, TaxRuleOption } from "@/types/transactions";
 
 const AUTO_CREATE_KEY = "receipts-auto-create";
 
@@ -76,6 +76,7 @@ type ReceiptsClientProps = {
   receipts: ReceiptItem[];
   accounts: AccountOption[];
   categories: CategoryOption[];
+  taxRules: TaxRuleOption[];
   workspaceId: string;
   workspaceType: "PERSONAL" | "BUSINESS";
   currency: string;
@@ -85,6 +86,7 @@ export function ReceiptsClient({
   receipts: initialReceipts,
   accounts,
   categories,
+  taxRules,
   workspaceId,
   workspaceType,
   currency,
@@ -412,6 +414,7 @@ export function ReceiptsClient({
           receipt={selectedReceipt}
           accounts={accounts}
           categories={categories}
+          taxRules={taxRules}
           workspaceId={workspaceId}
           workspaceType={workspaceType}
           defaultAccountId={resolvedAccountId}
