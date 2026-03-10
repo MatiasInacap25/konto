@@ -44,7 +44,6 @@ import type {
   CategoryOption,
   TaxRuleOption,
 } from "@/types/transactions";
-import type { TransactionScope } from "@prisma/client";
 
 type TransactionSheetProps = {
   open: boolean;
@@ -86,7 +85,6 @@ export function TransactionSheet({
       amount: "",
       description: "",
       type: "EXPENSE",
-      scope: workspaceType === "PERSONAL" ? "PERSONAL" : "BUSINESS",
       date: new Date(),
       accountId: "",
       categoryId: "",
@@ -121,7 +119,6 @@ export function TransactionSheet({
           description: transaction.description || "",
           // Manual transactions can only be INCOME or EXPENSE (TRANSFER is system-generated)
           type: transaction.type as "INCOME" | "EXPENSE",
-          scope: transaction.scope,
           date: new Date(transaction.date),
           accountId: transaction.accountId,
           categoryId: transaction.categoryId || "",
@@ -139,7 +136,6 @@ export function TransactionSheet({
           amount: "",
           description: "",
           type: "EXPENSE",
-          scope: workspaceType === "PERSONAL" ? "PERSONAL" : "BUSINESS",
           date: new Date(),
           accountId: accounts[0]?.id || "",
           categoryId: "",
@@ -175,7 +171,6 @@ export function TransactionSheet({
             amount,
             description: data.description || undefined,
             type: data.type,
-            scope: data.scope,
             date: data.date,
             accountId: data.accountId,
             categoryId: data.categoryId || null,
@@ -200,7 +195,6 @@ export function TransactionSheet({
           amount,
           description: data.description || undefined,
           type: data.type,
-          scope: data.scope,
           date: data.date,
           accountId: data.accountId,
           categoryId: data.categoryId || undefined,
@@ -451,28 +445,6 @@ export function TransactionSheet({
                 <p className="text-xs text-destructive">{errors.description.message}</p>
               )}
             </div>
-
-            {/* Scope — solo business */}
-            {workspaceType === "BUSINESS" && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Alcance</Label>
-                <Select
-                  value={watch("scope")}
-                  onValueChange={(value) =>
-                    setValue("scope", value as TransactionScope)
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BUSINESS">Negocio</SelectItem>
-                    <SelectItem value="PERSONAL">Personal</SelectItem>
-                    <SelectItem value="MIXED">Mixto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
 
           {/* Actions */}

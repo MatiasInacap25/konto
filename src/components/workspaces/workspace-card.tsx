@@ -21,7 +21,7 @@ export function WorkspaceCard({
   const totalEntities =
     workspace._count.accounts +
     workspace._count.members +
-    workspace._count.Recurrings +
+    workspace._count.recurrings +
     workspace._count.taxRules;
 
   return (
@@ -100,7 +100,7 @@ export function WorkspaceCard({
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <RefreshCcw className="w-3.5 h-3.5" />
-          <span>{workspace._count.Recurrings} {workspace._count.Recurrings === 1 ? "recurrente" : "recurrentes"}</span>
+          <span>{workspace._count.recurrings} {workspace._count.recurrings === 1 ? "recurrente" : "recurrentes"}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calculator className="w-3.5 h-3.5" />

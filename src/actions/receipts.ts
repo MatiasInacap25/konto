@@ -423,7 +423,6 @@ export async function confirmReceipt(
           amount,
           description: validInput.description,
           type: "EXPENSE", // Receipts are always expenses
-          scope: validInput.scope,
           date: validInput.date,
           accountId: validInput.accountId,
           categoryId: validInput.categoryId || undefined,
@@ -556,6 +555,116 @@ export async function deleteReceipt(
     return { success: true };
   } catch (error) {
     console.error("Delete receipt error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error desconocido",
+    };
+  }
+}
+
+/**
+ * Attach a receipt (file) to an existing transaction.
+ * Uploads the file to storage and updates the transaction with the receipt URL.
+ */
+export async function attachReceiptToTransaction(
+  formData: FormData
+): Promise<ActionResult<{ receiptUrl: string }>> {
+  try {
+    const file = formData.get("file") as File | null;
+    const transactionId = formData.get("transactionId") as string | null;
+    const workspaceId = formData.get("workspaceId") as string | null;
+
+    if (!file || !transactionId || !workspaceId) {
+      return { success: false, error: "Faltan datos requeridos" };
+    }
+
+    // Validate file
+    if (
+      !ACCEPTED_FILE_TYPES.includes(
+        file.type as (typeof ACCEPTED_FILE_TYPES)[number]
+      )
+    ) {
+      return {
+        success: false,
+        error: "Formato no soportado. Usá JPEG, PNG o WebP.",
+      };
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return {
+        success: false,
+        error: "El archivo es demasiado grande. Máximo 5MB.",
+      };
+    }
+
+    // Verify access
+    const { error: accessError, supabase } = await verifyAccess(workspaceId);
+    if (accessError || !supabase) {
+      return { success: false, error: accessError || "No autorizado" };
+    }
+
+    // Verify transaction belongs to workspace
+    const transaction = await prisma.transaction.findFirst({
+      where: { id: transactionId, workspaceId },
+    });
+
+    if (!transaction) {
+      return { success: false, error: "Transacción no encontrada" };
+    }
+
+    // Create receipt record first
+    const receipt = await prisma.receipt.create({
+      data: {
+        fileUrl: "",
+        fileName: file.name,
+        fileType: file.type,
+        status: "COMPLETED", // Skip AI extraction for manually attached receipts
+        workspaceId,
+      },
+    });
+
+    // Upload to Supabase Storage
+    const ext = getFileExtension(file.type);
+    const storagePath = `${workspaceId}/tx-${receipt.id}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("receipts")
+      .upload(storagePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      await prisma.receipt.delete({ where: { id: receipt.id } });
+      console.error("Storage upload error:", uploadError);
+      return { success: false, error: "Error al subir el archivo" };
+    }
+
+    // Get the public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("receipts").getPublicUrl(storagePath);
+
+    // Update receipt with URL and link to transaction
+    await prisma.receipt.update({
+      where: { id: receipt.id },
+      data: { 
+        fileUrl: publicUrl,
+        transactionId: transactionId,
+      },
+    });
+
+    // Update transaction with receipt URL
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { receiptUrl: publicUrl },
+    });
+
+    revalidatePath(`/transactions/${transactionId}`);
+
+    return { success: true, data: { receiptUrl: publicUrl } };
+  } catch (error) {
+    console.error("Attach receipt error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error desconocido",

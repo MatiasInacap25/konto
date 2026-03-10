@@ -23,7 +23,7 @@ export function DeleteConfirmModal({
 
   const totalData =
     workspace._count.accounts +
-    workspace._count.Recurrings +
+    workspace._count.recurrings +
     workspace._count.taxRules;
 
   return (
@@ -89,9 +89,9 @@ export function DeleteConfirmModal({
                     {workspace._count.accounts} {workspace._count.accounts === 1 ? "cuenta" : "cuentas"}
                   </li>
                 )}
-                {workspace._count.Recurrings > 0 && (
+                {workspace._count.recurrings > 0 && (
                   <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {workspace._count.Recurrings} {workspace._count.Recurrings === 1 ? "recurrente" : "recurrentes"}
+                    {workspace._count.recurrings} {workspace._count.recurrings === 1 ? "recurrente" : "recurrentes"}
                   </li>
                 )}
                 {workspace._count.taxRules > 0 && (

@@ -32,13 +32,6 @@ enum WorkspaceType {
   BUSINESS
 }
 
-// Mantenemos esto para casos bordes (ej: gasto personal dentro de una cuenta de negocio)
-enum TransactionScope {
-  PERSONAL
-  BUSINESS
-  MIXED
-}
-
 enum Frequency {
   WEEKLY
   BIWEEKLY
@@ -85,7 +78,6 @@ model User {
 
   // El usuario NO tiene transacciones directas, tiene Workspaces.
   workspaces    Workspace[]
-  categories    Category[]
   memberships   WorkspaceMember[]
 }
 
@@ -101,7 +93,8 @@ model Workspace {
   // Todo cuelga del Workspace
   transactions  Transaction[]
   accounts      Account[]
-  Recurrings Recurring[]
+  categories    Category[]
+  recurrings    Recurring[]
   taxRules      TaxRule[]
   members       WorkspaceMember[]
   receipts      Receipt[]
@@ -138,19 +131,17 @@ model Category {
   icon          String?
   type          TransactionType // Importante: Saber si es cat de ingreso o gasto
 
-  // Opcional: Si es NULL, es una categoría GLOBAL (del sistema)
-  // Si tiene ID, es una categoría CUSTOM de ese workspace
-  userId        String?         @db.Uuid
-  user          User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relación con Workspace (cada workspace tiene sus propias categorías)
+  workspaceId   String
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   transactions  Transaction[]
-  Recurrings Recurring[]
-  budgetLimits  BudgetCategoryLimit[]
+  recurrings   Recurring[]
+  budgetLimits BudgetCategoryLimit[]
 
-  // Unicidad: En un mismo workspace no puede haber dos categorías iguales.
-  // Pero permite duplicados si workspaceId es diferente.
-  @@unique([name, userId, type])
-  @@index([userId])
+  // Unicidad: En un mismo workspace no puede haber dos categorías iguales del mismo tipo
+  @@unique([name, workspaceId, type])
+  @@index([workspaceId])
 }
 
 model Transaction {
@@ -160,7 +151,6 @@ model Transaction {
   description   String?
 
   type          TransactionType
-  scope         TransactionScope // Para marcar gastos mixtos
 
   // Impuesto aplicado (opcional)
   taxAmount     Decimal?         @db.Decimal(10, 2)
@@ -191,7 +181,6 @@ model Recurring {
   nextPayment   DateTime
   isActive      Boolean          @default(true)
   type          TransactionType
-  scope         TransactionScope
 
   // Relaciones
   workspaceId   String

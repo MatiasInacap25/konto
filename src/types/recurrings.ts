@@ -1,4 +1,4 @@
-import type { Frequency, TransactionType, TransactionScope } from "@prisma/client";
+import type { Frequency, TransactionType } from "@prisma/client";
 
 export type RecurringWithRelations = {
   id: string;
@@ -8,7 +8,6 @@ export type RecurringWithRelations = {
   nextPayment: Date;
   isActive: boolean;
   type: TransactionType;
-  scope: TransactionScope;
   workspaceId: string;
   accountId: string | null;
   categoryId: string | null;
@@ -33,7 +32,6 @@ export type RecurringFormData = {
   frequency: Frequency;
   nextPayment: Date;
   type: TransactionType;
-  scope: TransactionScope;
   accountId: string | null;
   categoryId: string | null;
   workspaceId: string;

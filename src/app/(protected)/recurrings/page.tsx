@@ -19,7 +19,7 @@ async function RecurringsContent({ workspaceId }: { workspaceId: string }) {
       orderBy: { name: "asc" },
     }),
     prisma.category.findMany({
-      where: { user: null }, // Get all categories for now
+      where: { workspaceId },
       select: { id: true, name: true, icon: true, type: true },
       orderBy: { name: "asc" },
     }),

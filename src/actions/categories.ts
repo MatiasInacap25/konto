@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
+import { getWorkspace } from "@/lib/queries";
 import {
   serverCategorySchema,
   updateCategorySchema,
@@ -20,12 +21,18 @@ type ActionResult = {
  * Create a new category
  */
 export async function createCategory(
-  input: ServerCategoryData
+  input: ServerCategoryData,
+  workspaceId?: string
 ): Promise<ActionResult> {
   try {
     const user = await getUser();
     if (!user) {
       return { success: false, error: "No autenticado" };
+    }
+
+    const workspace = await getWorkspace(user.id, workspaceId);
+    if (!workspace) {
+      return { success: false, error: "Workspace no encontrado" };
     }
 
     // Validate input
@@ -37,12 +44,12 @@ export async function createCategory(
 
     const { name, icon, type } = validated.data;
 
-    // Check for duplicate name (case insensitive)
+    // Check for duplicate name (case insensitive) in workspace
     const existing = await prisma.category.findFirst({
       where: {
         name: { equals: name, mode: "insensitive" },
         type,
-        userId: user.id,
+        workspaceId: workspace.id,
       },
     });
 
@@ -56,7 +63,7 @@ export async function createCategory(
         name,
         icon: icon || null,
         type,
-        userId: user.id,
+        workspaceId: workspace.id,
       },
     });
 
@@ -75,12 +82,18 @@ export async function createCategory(
  * Update an existing category
  */
 export async function updateCategory(
-  input: UpdateCategoryData
+  input: UpdateCategoryData,
+  workspaceId?: string
 ): Promise<ActionResult> {
   try {
     const user = await getUser();
     if (!user) {
       return { success: false, error: "No autenticado" };
+    }
+
+    const workspace = await getWorkspace(user.id, workspaceId);
+    if (!workspace) {
+      return { success: false, error: "Workspace no encontrado" };
     }
 
     // Validate input
@@ -92,9 +105,9 @@ export async function updateCategory(
 
     const { id, name, icon, type } = validated.data;
 
-    // Verify category belongs to user
+    // Verify category belongs to workspace
     const category = await prisma.category.findFirst({
-      where: { id, userId: user.id },
+      where: { id, workspaceId: workspace.id },
     });
 
     if (!category) {
@@ -106,7 +119,7 @@ export async function updateCategory(
       where: {
         name: { equals: name, mode: "insensitive" },
         type,
-        userId: user.id,
+        workspaceId: workspace.id,
         id: { not: id },
       },
     });
@@ -139,19 +152,27 @@ export async function updateCategory(
 /**
  * Delete a category
  */
-export async function deleteCategory(categoryId: string): Promise<ActionResult> {
+export async function deleteCategory(
+  categoryId: string,
+  workspaceId?: string
+): Promise<ActionResult> {
   try {
     const user = await getUser();
     if (!user) {
       return { success: false, error: "No autenticado" };
     }
 
-    // Verify category belongs to user
+    const workspace = await getWorkspace(user.id, workspaceId);
+    if (!workspace) {
+      return { success: false, error: "Workspace no encontrado" };
+    }
+
+    // Verify category belongs to workspace
     const category = await prisma.category.findFirst({
-      where: { id: categoryId, userId: user.id },
+      where: { id: categoryId, workspaceId: workspace.id },
       include: {
         _count: {
-          select: { transactions: true, Recurrings: true },
+          select: { transactions: true, recurrings: true },
         },
       },
     });
@@ -161,10 +182,10 @@ export async function deleteCategory(categoryId: string): Promise<ActionResult> 
     }
 
     // Check if category has transactions or recurrings
-    if (category._count.transactions > 0 || category._count.Recurrings > 0) {
+    if (category._count.transactions > 0 || category._count.recurrings > 0) {
       return {
         success: false,
-        error: `No se puede eliminar: tiene ${category._count.transactions} transacciones y ${category._count.Recurrings} recurrentes asociadas`,
+        error: `No se puede eliminar: tiene ${category._count.transactions} transacciones y ${category._count.recurrings} recurrentes asociadas`,
       };
     }
 
@@ -185,17 +206,22 @@ export async function deleteCategory(categoryId: string): Promise<ActionResult> 
 }
 
 /**
- * Get all categories for the current user
+ * Get all categories for the current user's workspace
  */
-export async function getUserCategories() {
+export async function getUserCategories(workspaceId?: string) {
   try {
     const user = await getUser();
     if (!user) {
       return [];
     }
 
+    const workspace = await getWorkspace(user.id, workspaceId);
+    if (!workspace) {
+      return [];
+    }
+
     const categories = await prisma.category.findMany({
-      where: { userId: user.id },
+      where: { workspaceId: workspace.id },
       orderBy: [{ type: "asc" }, { name: "asc" }],
       include: {
         _count: {

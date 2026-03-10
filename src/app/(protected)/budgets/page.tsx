@@ -17,7 +17,7 @@ async function BudgetsContent({ workspaceId }: { workspaceId: string }) {
   const expenseCategories = await prisma.category.findMany({
     where: {
       type: "EXPENSE",
-      OR: [{ userId: null }, { userId: { not: null } }],
+      workspaceId,
     },
     orderBy: { name: "asc" },
   });

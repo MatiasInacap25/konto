@@ -97,7 +97,7 @@ export const getReceiptsPageData = cache(
       }),
       prisma.category.findMany({
         where: {
-          OR: [{ userId }, { userId: null }],
+          workspaceId: workspace.id,
         },
         select: { id: true, name: true, type: true, icon: true },
         orderBy: { name: "asc" },

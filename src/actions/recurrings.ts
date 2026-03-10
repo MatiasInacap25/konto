@@ -89,7 +89,6 @@ export async function registerRecurringPayment(
           date: recurring.nextPayment, // Fecha original del pago
           description: `Pago recurrente: ${recurring.name}`,
           type: recurring.type,
-          scope: recurring.scope,
           accountId: account.id,
           categoryId: recurring.categoryId,
           workspaceId: workspaceId,
@@ -221,7 +220,6 @@ export async function createRecurring(
     frequency: string;
     nextPayment: string;
     type: "INCOME" | "EXPENSE";
-    scope: "PERSONAL" | "BUSINESS" | "MIXED";
     accountId?: string | null;
     categoryId?: string | null;
     workspaceId: string;
@@ -265,7 +263,6 @@ export async function createRecurring(
         frequency: input.frequency as any,
         nextPayment: nextPaymentDate,
         type: input.type,
-        scope: input.scope,
         accountId: input.accountId || null,
         categoryId: input.categoryId || null,
         workspaceId: input.workspaceId,
@@ -293,7 +290,6 @@ export async function updateRecurring(
     frequency: string;
     nextPayment: string;
     type: "INCOME" | "EXPENSE";
-    scope: "PERSONAL" | "BUSINESS" | "MIXED";
     accountId?: string | null;
     categoryId?: string | null;
     workspaceId: string;
@@ -336,11 +332,10 @@ export async function updateRecurring(
       where: { id: input.id },
       data: {
         name: input.name,
-        amount,
+        amount: amount,
         frequency: input.frequency as any,
         nextPayment: nextPaymentDate,
         type: input.type,
-        scope: input.scope,
         accountId: input.accountId || null,
         categoryId: input.categoryId || null,
       },

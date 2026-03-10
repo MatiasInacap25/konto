@@ -9,7 +9,7 @@ export type WorkspaceWithCounts = {
   _count: {
     accounts: number;
     members: number;
-    Recurrings: number;
+    recurrings: number;
     taxRules: number;
   };
 };

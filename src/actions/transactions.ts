@@ -11,13 +11,11 @@ import { revalidatePath } from "next/cache";
 // ============================================
 
 const transactionTypes = ["INCOME", "EXPENSE"] as const;
-const transactionScopes = ["PERSONAL", "BUSINESS", "MIXED"] as const;
 
 const createTransactionServerSchema = z.object({
   amount: z.number().positive("El monto debe ser mayor a 0"),
   description: z.string().max(500).optional(),
   type: z.enum(transactionTypes),
-  scope: z.enum(transactionScopes),
   date: z.coerce.date(),
   accountId: z.string().min(1, "Cuenta requerida"),
   categoryId: z.string().optional(),
@@ -31,7 +29,6 @@ const updateTransactionServerSchema = z.object({
   amount: z.number().positive().optional(),
   description: z.string().max(500).optional(),
   type: z.enum(transactionTypes).optional(),
-  scope: z.enum(transactionScopes).optional(),
   date: z.coerce.date().optional(),
   accountId: z.string().min(1).optional(),
   categoryId: z.string().nullable().optional(),
@@ -124,7 +121,6 @@ export async function createTransaction(
           amount: validInput.amount,
           description: validInput.description,
           type: validInput.type,
-          scope: validInput.scope,
           date: validInput.date,
           accountId: validInput.accountId,
           categoryId: validInput.categoryId,
@@ -241,7 +237,6 @@ export async function updateTransaction(
           amount: validInput.amount,
           description: validInput.description,
           type: validInput.type,
-          scope: validInput.scope,
           date: validInput.date,
           accountId: validInput.accountId,
           categoryId: validInput.categoryId,

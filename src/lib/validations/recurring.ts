@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Frequency, TransactionType, TransactionScope } from "@prisma/client";
+import type { Frequency, TransactionType } from "@prisma/client";
 
 const FREQUENCIES: Frequency[] = [
   "WEEKLY",
@@ -11,7 +11,6 @@ const FREQUENCIES: Frequency[] = [
 ];
 
 const TRANSACTION_TYPES: TransactionType[] = ["INCOME", "EXPENSE"];
-const TRANSACTION_SCOPES: TransactionScope[] = ["PERSONAL", "BUSINESS", "MIXED"];
 
 // Client-side form schema
 export const createRecurringSchema = z.object({
@@ -36,9 +35,6 @@ export const createRecurringSchema = z.object({
   type: z.enum(TRANSACTION_TYPES as [TransactionType, ...TransactionType[]], {
     message: "Seleccioná el tipo",
   }),
-  scope: z.enum(TRANSACTION_SCOPES as [TransactionScope, ...TransactionScope[]], {
-    message: "Seleccioná el alcance",
-  }).default("PERSONAL"),
   accountId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
 });
@@ -50,7 +46,6 @@ export const serverRecurringSchema = z.object({
   frequency: z.enum(FREQUENCIES),
   nextPayment: z.date(),
   type: z.enum(TRANSACTION_TYPES),
-  scope: z.enum(TRANSACTION_SCOPES).default("PERSONAL"),
   accountId: z.string().nullable(),
   categoryId: z.string().nullable(),
   workspaceId: z.string(),

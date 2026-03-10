@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2, Receipt, Clock, Percent, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export function TransactionsList({
   workspaceId,
   onEdit,
 }: TransactionsListProps) {
+  const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -99,6 +101,12 @@ export function TransactionsList({
     } else {
       toast.error(result.error || "Error al eliminar");
     }
+  };
+
+  const handleRowClick = (transactionId: string) => {
+    const params = new URLSearchParams();
+    params.set("workspace", workspaceId);
+    router.push(`/transactions/${transactionId}?${params.toString()}`);
   };
 
   // Empty state
@@ -200,8 +208,9 @@ export function TransactionsList({
                   return (
                     <div
                       key={tx.id}
+                      onClick={() => handleRowClick(tx.id)}
                       className={cn(
-                        "group relative flex items-center gap-4 py-3 px-4 -mx-4 rounded-lg",
+                        "group relative flex items-center gap-4 py-3 px-4 -mx-4 rounded-lg cursor-pointer",
                         "hover:bg-muted/40 transition-colors duration-150",
                         // Borde izquierdo como indicador de tipo — la firma
                         "before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-full",

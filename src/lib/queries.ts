@@ -39,7 +39,7 @@ export const getUserWorkspacesWithCounts = cache(async (userId: string) => {
         select: {
           accounts: true,
           members: true,
-          Recurrings: true,
+          recurrings: true,
           taxRules: true,
         },
       },
@@ -647,7 +647,6 @@ export const getWorkspaceTransactionData = cache(
           date: true,
           description: true,
           type: true,
-          scope: true,
           accountId: true,
           categoryId: true,
           workspaceId: true,
@@ -667,7 +666,7 @@ export const getWorkspaceTransactionData = cache(
       }),
       prisma.category.findMany({
         where: {
-          OR: [{ userId }, { userId: null }],
+          workspaceId: workspace.id,
         },
         select: { id: true, name: true, type: true, icon: true },
         orderBy: { name: "asc" },
@@ -769,5 +768,66 @@ export const getWorkspaceAccountsData = cache(
       totalBalance,
       archivedCount,
     };
+  }
+);
+
+/**
+ * Get a single transaction by ID with all related data
+ */
+export const getTransactionById = cache(
+  async (transactionId: string, userId: string) => {
+    // First verify the transaction belongs to the user's workspace
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id: transactionId,
+        workspace: { userId },
+      },
+      select: {
+        id: true,
+        amount: true,
+        date: true,
+        description: true,
+        type: true,
+        accountId: true,
+        categoryId: true,
+        workspaceId: true,
+        taxAmount: true,
+        taxRate: true,
+        receiptUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        account: {
+          select: {
+            id: true,
+            name: true,
+            balance: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            icon: true,
+            type: true,
+          },
+        },
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            currency: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return transaction;
   }
 );

@@ -1,4 +1,4 @@
-import type { TransactionType, TransactionScope } from "@prisma/client";
+import type { TransactionType } from "@prisma/client";
 
 export type TransactionWithRelations = {
   id: string;
@@ -6,7 +6,6 @@ export type TransactionWithRelations = {
   date: Date;
   description: string | null;
   type: TransactionType;
-  scope: TransactionScope;
   accountId: string;
   categoryId: string | null;
   workspaceId: string;
