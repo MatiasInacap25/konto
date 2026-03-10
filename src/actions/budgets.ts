@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+type TransactionClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -169,7 +172,7 @@ export async function updateBudget(
     }
 
     // Update budget in transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       // Delete existing category limits
       await tx.budgetCategoryLimit.deleteMany({
         where: { budgetId: validInput.id },
