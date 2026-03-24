@@ -1,7 +1,7 @@
 // Tipos de planes - Espejo del enum de Prisma
 // Cuando se corra prisma generate, estos tipos coincidirán con @prisma/client
 
-export type Plan = "STARTER" | "PRO" | "BUSINESS";
+export type Plan = "STARTER" | "PRO" | "PRO_PLUS" | "BUSINESS" | "ENTERPRISE";
 
 export type WorkspaceType = "PERSONAL" | "BUSINESS";
 

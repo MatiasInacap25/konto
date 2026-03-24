@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { usePlanAccess } from "@/hooks/use-plan";
 import { WorkspaceSelector } from "./workspace-selector";
 import type { Plan } from "@/types/plans";
 import {
@@ -16,7 +15,6 @@ import {
   Calculator,
   TrendingUp,
   Receipt,
-  MessageCircle,
   Settings,
   Lock,
   ChevronLeft,
@@ -36,6 +34,9 @@ type NavItem = {
   /** Si true, no incluye el workspace en la URL */
   noWorkspace?: boolean;
 };
+
+import { useSidebar } from "./sidebar-context";
+import { usePlanAccess } from "./plan-context";
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -101,13 +102,6 @@ const NAV_ITEMS: NavItem[] = [
     icon: Receipt,
     requiredPlan: "PRO",
   },
-  {
-    label: "Bot WhatsApp",
-    href: "/whatsapp-bot",
-    icon: MessageCircle,
-    requiredPlan: "BUSINESS",
-    badge: "IA",
-  },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItem[] = [
@@ -120,6 +114,7 @@ const BOTTOM_NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar() {
+  const { isOpen, close } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { canAccess } = usePlanAccess();
@@ -166,18 +161,34 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className={cn(
-        "flex flex-col h-full bg-card border-r transition-all duration-300",
-        isCollapsed ? "w-16" : "w-64"
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={close}
+        />
       )}
-    >
+      
+      <aside
+        className={cn(
+          "fixed lg:relative z-50 lg:z-auto flex flex-col h-full bg-card border-r transition-all duration-300",
+          // Mobile behavior
+          "w-64",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          // Desktop behavior
+          isCollapsed ? "lg:w-16" : "lg:w-64"
+        )}
+      >
       {/* Header — Workspace + toggle colapsar */}
       <div className={cn(
-        "flex items-center border-b",
-        isCollapsed ? "flex-col gap-1 px-2 py-2" : "gap-1 px-2 py-2"
+        "flex items-center justify-between h-16 border-b px-2",
+        isCollapsed && "justify-center"
       )}>
-        <div className="flex-1 min-w-0">
+        <div className={cn(
+          "flex-1 min-w-0",
+          isCollapsed && "hidden"
+        )}>
           <WorkspaceSelector isCollapsed={isCollapsed} inline />
         </div>
         <button
@@ -290,5 +301,6 @@ export function Sidebar() {
         </ul>
       </div>
     </aside>
+    </>
   );
 }

@@ -210,13 +210,6 @@ async function calculateInsights(
     console.error("Recurring impact calculation failed:", e);
   }
 
-  try {
-    const topMerchant = await calculateTopMerchant(workspaceId);
-    if (topMerchant) insights.push(topMerchant);
-  } catch (e) {
-    console.error("Top merchant calculation failed:", e);
-  }
-
   // Sort by priority
   return insights.sort((a, b) => a.priority - b.priority);
 }

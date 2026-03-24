@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ProtectedClientLayout } from "./protected-client-layout";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 
@@ -88,7 +89,7 @@ export default async function ProtectedLayout({
   };
 
   return (
-    <div className="flex h-screen bg-card">
+    <ProtectedClientLayout user={userData} plan={dbUser?.plan}>
       {/* Sidebar */}
       <Sidebar />
 
@@ -100,6 +101,6 @@ export default async function ProtectedLayout({
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
-    </div>
+    </ProtectedClientLayout>
   );
 }

@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Profile se crea automáticamente cuando un usuario se registra
@@ -79,6 +80,26 @@ model User {
   // El usuario NO tiene transacciones directas, tiene Workspaces.
   workspaces    Workspace[]
   memberships   WorkspaceMember[]
+  notificationPreferences UserNotificationPreferences?
+}
+
+model UserNotificationPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique @db.Uuid
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Email notifications
+  emailNotifications    Boolean  @default(true)
+  weeklyReport          Boolean  @default(true)
+  transactionAlerts     Boolean  @default(true)
+  marketingEmails       Boolean  @default(false)
+  
+  // Push notifications (in-app)
+  pushNotifications     Boolean  @default(true)
+  pushSound             Boolean  @default(true)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model Workspace {

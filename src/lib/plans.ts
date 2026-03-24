@@ -1,5 +1,10 @@
 import type { Plan } from "@/types/plans";
 
+/**
+ * Nivel de OCR para recibos
+ */
+export type OCRLevel = "none" | "basic" | "advanced";
+
 export const PLAN_LIMITS = {
   STARTER: {
     // Workspaces
@@ -12,11 +17,17 @@ export const PLAN_LIMITS = {
     // Límites globales
     recurrings: 5,
 
+    // Miembros del workspace (invitados)
+    maxMembers: 0, // No puede invitar a nadie
+
     // Features booleanas
     customCategories: false,
     runway: false,
     receipts: false,
-    whatsappBot: false,
+    receiptSave: false,
+    receiptOCR: "none" as OCRLevel,
+    xmlSupport: false,
+    bankConnection: false,
   },
   PRO: {
     // Workspaces
@@ -29,11 +40,40 @@ export const PLAN_LIMITS = {
     // Límites globales
     recurrings: Infinity,
 
-    // Features booleanas
+    // Miembros del workspace
+    maxMembers: 0, // No puede invitar (solo él)
+
+    // Features
     customCategories: true,
     runway: true,
     receipts: true,
-    whatsappBot: false,
+    receiptSave: false, // Foto crea transacción pero NO guarda imagen
+    receiptOCR: "basic" as OCRLevel,
+    xmlSupport: false,
+    bankConnection: false,
+  },
+  PRO_PLUS: {
+    // Workspaces
+    workspaces: { personal: 1, business: 5 },
+
+    // Límites por workspace
+    accountsPerWorkspace: Infinity,
+    taxRulesPerWorkspace: Infinity,
+
+    // Límites globales
+    recurrings: Infinity,
+
+    // Miembros del workspace
+    maxMembers: 3, // Puede invitar hasta 3 personas
+
+    // Features
+    customCategories: true,
+    runway: true,
+    receipts: true,
+    receiptSave: true, // Guarda imagen enlazada a transacción
+    receiptOCR: "basic" as OCRLevel,
+    xmlSupport: true, // Boletas electrónicas XML (Chile SII)
+    bankConnection: false,
   },
   BUSINESS: {
     // Workspaces
@@ -46,24 +86,55 @@ export const PLAN_LIMITS = {
     // Límites globales
     recurrings: Infinity,
 
-    // Features booleanas
+    // Miembros del workspace
+    maxMembers: 10, // Puede invitar hasta 10 personas
+
+    // Features
     customCategories: true,
     runway: true,
     receipts: true,
-    whatsappBot: true,
+    receiptSave: true,
+    receiptOCR: "advanced" as OCRLevel, // Extrae comercio, items, RUT
+    xmlSupport: true,
+    bankConnection: true, // Fintoc - bancos y tarjetas
+  },
+  ENTERPRISE: {
+    // Workspaces
+    workspaces: { personal: 1, business: Infinity },
+
+    // Límites por workspace
+    accountsPerWorkspace: Infinity,
+    taxRulesPerWorkspace: Infinity,
+
+    // Límites globales
+    recurrings: Infinity,
+
+    // Miembros del workspace
+    maxMembers: Infinity,
+
+    // Features
+    customCategories: true,
+    runway: true,
+    receipts: true,
+    receiptSave: true,
+    receiptOCR: "advanced" as OCRLevel,
+    xmlSupport: true,
+    bankConnection: true,
   },
 } as const;
 
 export type PlanLimits = (typeof PLAN_LIMITS)[Plan];
 
 /**
- * Jerarquía de planes: BUSINESS > PRO > STARTER
+ * Jerarquía de planes: ENTERPRISE > BUSINESS > PRO_PLUS > PRO > STARTER
  * Un plan superior tiene acceso a todas las features de los planes inferiores.
  */
 const PLAN_HIERARCHY: Record<Plan, number> = {
   STARTER: 0,
   PRO: 1,
-  BUSINESS: 2,
+  PRO_PLUS: 2,
+  BUSINESS: 3,
+  ENTERPRISE: 4,
 };
 
 /**
@@ -85,9 +156,16 @@ export function getPlanLimits(plan: Plan): PlanLimits {
  */
 export function hasFeature(
   plan: Plan,
-  feature: "customCategories" | "runway" | "receipts" | "whatsappBot",
+  feature: "customCategories" | "runway" | "receipts" | "receiptSave" | "xmlSupport" | "bankConnection",
 ): boolean {
   return PLAN_LIMITS[plan][feature];
+}
+
+/**
+ * Obtiene el nivel de OCR para el plan
+ */
+export function getOCRLevel(plan: Plan): OCRLevel {
+  return PLAN_LIMITS[plan].receiptOCR;
 }
 
 /**

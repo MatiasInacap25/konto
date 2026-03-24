@@ -1,6 +1,6 @@
 "use client";
 
-import { usePlanAccess } from "@/hooks/use-plan";
+import { usePlanAccess } from "@/components/dashboard/plan-context";
 import type { Plan } from "@/types/plans";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
@@ -27,7 +27,9 @@ type PlanGateProps = {
 const PLAN_NAMES: Record<Plan, string> = {
   STARTER: "Starter",
   PRO: "Pro",
+  PRO_PLUS: "Pro Plus",
   BUSINESS: "Business",
+  ENTERPRISE: "Enterprise",
 };
 
 /**
@@ -60,9 +62,15 @@ export function PlanGate({
 }: PlanGateProps) {
   const { canAccess, isLoading } = usePlanAccess();
 
-  // Mientras carga, no mostramos nada para evitar flash
+  // Mientras carga, mostrar skeleton para mejor UX
   if (isLoading) {
-    return null;
+    return (
+      <div className={cn("animate-pulse bg-muted rounded-md h-32", className)}>
+        <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
+          Verificando plan...
+        </div>
+      </div>
+    );
   }
 
   const hasAccess = canAccess(requiredPlan);

@@ -27,7 +27,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$12",
+    price: "$15",
     period: "/mes",
     description: "Personalización total y paz mental para tu negocio",
     features: [
@@ -37,7 +37,7 @@ const plans = [
       "Suscripciones ilimitadas",
       "Reglas de ingresos ilimitadas (calculá IVA, Ganancias, etc.)",
       "Proyección de flujo de caja (Runway)",
-      "Adjuntar fotos de recibos",
+      "Foto de recibo → Crea transacción con IA",
       "Sobres virtuales (Profit First)",
     ],
     cta: "Elegir Pro",
@@ -45,21 +45,56 @@ const plans = [
     highlighted: true,
   },
   {
-    name: "Business",
-    price: "$29",
+    name: "Pro Plus",
+    price: "$25",
     period: "/mes",
-    description: "Delegá la administración en nuestra IA. Vendé, que nosotros contamos.",
+    description: "Adjuntá archivos y guardalos vinculados a tus transacciones",
+    features: [
+      "Todo lo de Pro incluido",
+      "Foto de recibo → Guarda imagen enlazada",
+      "Boletas electrónicas (XML) → Guarda y parsea automáticamente",
+      "Hasta 5 negocios",
+      "Invita hasta 3 miembros al workspace",
+      "Soporte prioritario",
+    ],
+    cta: "Elegir Pro Plus",
+    href: "/register?plan=pro-plus",
+    highlighted: false,
+  },
+  {
+    name: "Business",
+    price: "$39",
+    period: "/mes",
+    description: "Integraciones automáticas. Conectá tus bancos y tarjetas",
     features: [
       "Hasta 10 negocios",
-      "Finance Bot con IA por WhatsApp",
-      "Registrá gastos por audio o texto",
-      "Escáner inteligente de recibos (OCR)",
-      "Consultá tu saldo por chat",
-      "Soporte prioritario",
-      "Todo lo de Pro incluido",
+      "Conexión con bancos y tarjetas (Fintoc)",
+      "Movimientos automáticos en tiempo real",
+      "OCR avanzado (extrae comercio, items, RUT)",
+      "Invita hasta 10 miembros al workspace",
+      "Todo lo de Pro Plus incluido",
+      "Soporte prioritario 24/7",
     ],
     cta: "Elegir Business",
     href: "/register?plan=business",
+    highlighted: false,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    period: "",
+    description: "Para estudios contables y equipos que necesitan más",
+    features: [
+      "Usuarios ilimitados por organización",
+      "Multi-tenancy (múltiples clientes)",
+      "API Access para integraciones",
+      "SSO (Single Sign-On)",
+      "Reportes personalizados",
+      "Gerente de cuenta dedicado",
+      "SLA garantizado",
+    ],
+    cta: "Contactanos",
+    href: "/contact?plan=enterprise",
     highlighted: false,
   },
 ];
@@ -78,7 +113,7 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
           {plans.map((plan) => (
             <Card
               key={plan.name}

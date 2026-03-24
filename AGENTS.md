@@ -5,17 +5,23 @@ Guidelines for AI agents working in this Next.js 16 + Supabase + Prisma codebase
 ## Quick Reference
 
 ```bash
+# Development
 npm run dev              # Start dev server (Turbopack)
-npm run build           # Production build
+npm run build            # Production build (runs prisma generate first)
 npm run start           # Start production server
 npm run lint            # Run ESLint
-npx tsc --noEmit        # Type check without building
-npx prisma generate     # Regenerate Prisma client
-npx prisma db push      # Push schema to database
-npx prisma studio       # Open Prisma Studio
-```
 
-**No test framework configured yet.** When adding tests, use Vitest or Bun for single test: `bun test path/to/test.spec.ts`.
+# TypeScript
+npx tsc --noEmit       # Type check without building
+
+# Prisma
+npx prisma generate    # Regenerate Prisma client
+npx prisma db push     # Push schema to database
+npx prisma studio      # Open Prisma Studio
+
+# Testing (no framework configured yet)
+# When adding tests, use Vitest or Bun: bun test path/to/test.spec.ts
+```
 
 ---
 
@@ -47,7 +53,7 @@ src/
 ├── hooks/             # Custom React hooks (use-{name}.ts)
 ├── lib/
 │   ├── validations/   # Zod schemas
-│   ├── supabase/     # Supabase clients
+│   ├── supabase/      # Supabase clients
 │   └── prisma.ts     # Prisma singleton
 └── types/             # TypeScript types
 ```
@@ -64,13 +70,14 @@ src/
 - **Constants**: SCREAMING_SNAKE_CASE (`PLAN_LIMITS`)
 - **Types**: `{ComponentName}Props`, use `type` not `interface`
 
-### Imports Order
-1. React/Next.js
+### Imports Order (strict)
+1. React/Next.js built-ins
 2. External libraries (Supabase, Prisma, Lucide)
 3. Internal `@/` imports
 4. Relative imports
 
 ```typescript
+// ✅ Correct order
 import { useState } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -188,6 +195,7 @@ try {
 - Skip `"use client"` when using hooks
 - Use `interface` (prefer `type`)
 - Commit `.env` files
+- Use console.log in production (use proper logging)
 
 ---
 
@@ -197,3 +205,8 @@ Check `.agents/skills/` for specialized guidance:
 - `vercel-react-best-practices/` - Performance patterns
 - `brainstorming/` - Feature design workflow
 - `interface-design/` - UI/UX patterns
+- `cloud-architect/` - AWS deployment & architecture
+- `security-review/` - Code security reviews
+- `cybersecurity-analyst/` - Vulnerability analysis
+- `code-hardcode-audit/` - Secret detection
+- `frontend-security/` - Frontend security patterns

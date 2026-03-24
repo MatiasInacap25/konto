@@ -114,7 +114,7 @@ export function usePlanAccess() {
 
     /** Verifica si una feature específica está habilitada */
     hasFeatureAccess: (
-      feature: "customCategories" | "runway" | "receipts" | "whatsappBot",
+      feature: "customCategories" | "runway" | "receipts" | "receiptSave" | "xmlSupport" | "bankConnection",
     ) => hasFeature(plan, feature),
 
     /** Verifica si se alcanzó un límite numérico */
